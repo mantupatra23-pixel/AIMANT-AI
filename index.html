@@ -1,32 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.tailwindcss.com"></script>
 <title>AIMANT AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-black text-white flex items-center justify-center h-screen">
 
-<div class="w-full max-w-xl p-6 bg-white/10 backdrop-blur rounded-xl">
+<div class="text-center w-full max-w-xl">
 
-<h1 class="text-2xl font-bold mb-4 text-green-400">🚀 AIMANT AI</h1>
+<h1 class="text-4xl font-bold mb-6">🚀 AIMANT AI</h1>
 
-<textarea id="idea" class="w-full p-3 bg-black/40 rounded mb-4"
+<textarea id="idea" class="w-full p-3 text-black rounded"
 placeholder="Enter your SaaS idea..."></textarea>
 
-<button onclick="startBuild()" class="w-full bg-blue-500 py-2 rounded">
-Build Now 🚀
+<button onclick="startBuild()" 
+class="mt-4 w-full bg-purple-600 py-3 rounded text-lg hover:bg-purple-700">
+Start Building
 </button>
 
 </div>
 
 <script>
-function startBuild(){
+async function startBuild(){
     let idea = document.getElementById("idea").value
-    localStorage.setItem("idea", idea)
-    window.location.href = "/builder.html"
+
+    if(!idea){
+        alert("Enter idea first")
+        return
+    }
+
+    let res = await fetch("/start-build", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({idea})
+    })
+
+    let data = await res.json()
+
+    localStorage.setItem("build_id", data.build_id)
+
+    window.location.href = "/builder"
 }
 </script>
 

@@ -1,28 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<title>AIMANT AI Builder</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.tailwindcss.com"></script>
-<title>Builder</title>
 
 <style>
-.glass {
+.glass{
     background: rgba(255,255,255,0.05);
     backdrop-filter: blur(10px);
 }
 </style>
-
 </head>
 
-<body class="bg-black text-white flex h-screen">
+<body class="bg-gray-900 text-white flex h-screen overflow-hidden">
 
-<!-- LEFT -->
-<div class="w-64 glass p-4">
+<!-- SIDEBAR -->
+<div class="w-64 glass p-4 border-r border-gray-800">
 
-<h2 class="text-green-400 mb-4">⚡ Build Steps</h2>
+<h2 class="text-xl font-bold mb-6 text-purple-400">⚡ AIMANT AI</h2>
 
-<div id="steps" class="space-y-2 text-sm">
+<div id="steps" class="space-y-3 text-sm">
 <div>⏳ Analyze Idea</div>
 <div>⏳ Generate Features</div>
 <div>⏳ Backend</div>
@@ -32,78 +30,134 @@
 
 </div>
 
-<!-- RIGHT -->
-<div class="flex-1 p-4 flex flex-col">
+<!-- MAIN -->
+<div class="flex-1 flex flex-col p-5">
 
-<div class="flex justify-between mb-3">
-    <div>
-        <button onclick="showTab('code')" class="bg-gray-700 px-3 py-1 rounded">Code</button>
-        <button onclick="showTab('preview')" class="bg-gray-700 px-3 py-1 rounded">Preview</button>
-    </div>
+<h1 class="text-2xl mb-4">🚀 AI Build Running...</h1>
 
-    <div>
-        <button onclick="publish()" class="bg-green-500 px-3 py-1 rounded">Publish</button>
-        <button onclick="githubPush()" class="bg-purple-500 px-3 py-1 rounded">GitHub</button>
-    </div>
+<!-- PROGRESS -->
+<div class="mb-4">
+<div class="w-full bg-gray-700 rounded h-3 overflow-hidden">
+<div id="bar" class="bg-purple-600 h-3 rounded transition-all duration-500 w-0"></div>
+</div>
+<p id="step" class="mt-2 text-xs text-gray-400">Starting...</p>
 </div>
 
-<pre id="output" class="flex-1 bg-black/40 p-3 rounded overflow-auto text-green-300">
+<!-- LOGS -->
+<div id="logs" class="bg-black/50 p-3 h-32 overflow-auto rounded mb-4 text-xs">
 Starting build...
-</pre>
+</div>
+
+<!-- TABS -->
+<div class="flex gap-2 mb-2">
+<button onclick="show('frontend')" class="bg-blue-600 px-3 py-1 rounded">Frontend</button>
+<button onclick="show('backend')" class="bg-green-600 px-3 py-1 rounded">Backend</button>
+<button onclick="show('deploy')" class="bg-yellow-600 px-3 py-1 rounded">Deploy</button>
+</div>
+
+<!-- CODE VIEW -->
+<pre id="code" class="bg-black/60 p-3 flex-1 overflow-auto rounded text-xs"></pre>
+
+<!-- ACTION -->
+<div class="mt-3 flex gap-3">
+<button onclick="download()" class="bg-purple-600 px-4 py-2 rounded hover:bg-purple-700">Download</button>
+<button onclick="publish()" class="bg-green-600 px-4 py-2 rounded hover:bg-green-700">Publish</button>
+</div>
 
 </div>
 
 <script>
 
-let idea = localStorage.getItem("idea")
+let build_id = localStorage.getItem("build_id")
+let current = {}
 
-async function runBuild(){
+if(!build_id){
+    alert("No build found")
+}
 
-    let res = await fetch("/generate", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({idea})
+function updateProgress(step){
+    let steps = ["analyzing","features","backend","frontend","deploy","done"]
+    let index = steps.indexOf(step)
+
+    if(index === -1) return
+
+    let percent = ((index+1) / steps.length) * 100
+
+    document.getElementById("bar").style.width = percent + "%"
+    document.getElementById("step").innerText = "Step: " + step
+
+    // sidebar update
+    let labels = [
+        "Analyze Idea",
+        "Generate Features",
+        "Backend",
+        "Frontend",
+        "Deploy"
+    ]
+
+    let html = ""
+
+    labels.forEach((label, i)=>{
+        if(i <= index){
+            html += `<div>✅ ${label}</div>`
+        } else {
+            html += `<div>⏳ ${label}</div>`
+        }
     })
 
-    let data = await res.json()
-
-    document.getElementById("output").innerText =
-        "IDEA:\n" + data.idea +
-        "\n\nFEATURES:\n" + data.features +
-        "\n\nBACKEND:\n" + data.backend +
-        "\n\nFRONTEND:\n" + data.frontend +
-        "\n\nDEPLOY:\n" + data.deploy
-
-    updateSteps()
+    document.getElementById("steps").innerHTML = html
 }
 
-function updateSteps(){
-    document.getElementById("steps").innerHTML = `
-    <div>✅ Analyze Idea</div>
-    <div>✅ Features</div>
-    <div>✅ Backend</div>
-    <div>✅ Frontend</div>
-    <div>✅ Deploy</div>
-    `
-}
+async function fetchStatus(){
+    try{
+        let res = await fetch("/build-status/" + build_id)
+        let data = await res.json()
 
-function showTab(type){
-    if(type=="preview"){
-        document.getElementById("output").innerText = "Preview coming soon..."
+        if(data.error){
+            document.getElementById("logs").innerText = data.error
+            return
+        }
+
+        current = data.data || {}
+
+        updateProgress(data.step)
+
+        // logs update
+        let logs = data.logs || []
+        document.getElementById("logs").innerHTML =
+            logs.map(l => "• " + l).join("<br>")
+
+        // auto show frontend after complete
+        if(data.status === "completed"){
+            document.getElementById("step").innerText = "✅ Build Completed"
+            document.getElementById("code").innerText = current.frontend || ""
+        }
+
+        setTimeout(fetchStatus, 2000)
+
+    }catch(e){
+        document.getElementById("logs").innerText = "Server error..."
     }
 }
 
-function publish(){
-    alert("🚀 App Published (Demo)")
+function show(type){
+    document.getElementById("code").innerText = current[type] || "No data"
 }
 
-function githubPush(){
-    alert("📦 Code pushed to GitHub (Demo)")
+function download(){
+    window.open("/download/" + build_id)
 }
 
-runBuild()
+async function publish(){
+    let res = await fetch("/publish?build_id=" + build_id, {method:"POST"})
+    let data = await res.json()
+    alert("🚀 Live: " + data.url)
+}
+
+// start polling
+fetchStatus()
 
 </script>
 
 </body>
-</html>
+</html>	
