@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import requests, os, subprocess, time
+import requests, os, time
 
 app = FastAPI()
 
@@ -18,105 +18,113 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # ===== SYSTEM PROMPT =====
 SYSTEM_PROMPT = """
-You are an autonomous AI software development agency.
+You are an AI software agency.
+Generate COMPLETE WORKING CODE only.
 
-You ONLY generate COMPLETE WORKING CODE.
+Include:
+- Backend
+- Frontend
+- Database
+- Deployment
 
-You must:
-- Build backend
-- Build frontend
-- Add database
-- Add deployment
-
-Also:
-- Detect bugs
-- Fix bugs automatically
-- Return clean code
-
-Format:
-1. Overview
-2. Folder Structure
-3. Backend Code
-4. Frontend Code
-5. Database
-6. Deployment
+Fix bugs automatically.
+No explanation.
 """
 
-# ===== MODEL =====
+# ===== MODELS =====
 class Data(BaseModel):
     idea: str
 
-# ===== MEMORY / CACHE / USAGE =====
+class ChatData(BaseModel):
+    message: str
+
+# ===== STORAGE =====
 memory = {}
-cache = {}
-usage = {}
+projects = []
+credits = {"default": 5}
+stats = {"users": 1, "requests": 0}
+history = []
 
 # ===== GROQ CALL =====
-def call_groq(prompt):
-    try:
-        res = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "llama3-70b-8192",
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ]
-            },
-            timeout=60
-        )
-        return res.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"Error: {str(e)}"
+def call_groq(messages):
+    res = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "llama3-70b-8192",
+            "messages": messages
+        }
+    )
+    return res.json()["choices"][0]["message"]["content"]
 
-# ===== TEMPLATE BOOST =====
-def template_boost(idea):
-    i = idea.lower()
-    if "salon" in i:
-        return idea + " with booking system, pricing, admin panel"
-    if "gym" in i:
-        return idea + " with membership system, trainer booking"
-    if "clinic" in i:
-        return idea + " with appointment system and patient records"
-    return idea
-
-# ===== MAIN =====
+# ===== GENERATE (MULTI-AGENT) =====
 @app.post("/generate")
 def generate(d: Data):
 
     user = "default"
 
-    # usage limit
-    usage[user] = usage.get(user, 0) + 1
-    if usage[user] > 5:
-        return {"error": "Upgrade required 🔒"}
+    if credits.get(user, 0) <= 0:
+        return {"error": "No credits 🔒"}
 
-    idea = template_boost(d.idea)
+    credits[user] -= 1
+    stats["requests"] += 1
 
-    # cache check
-    if idea in cache:
-        return cache[idea]
+    # improve idea
+    improved = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Improve this idea professionally: {d.idea}"}
+    ])
 
-    memory[user] = idea
+    memory[user] = improved
 
-    # ===== MULTI AGENTS =====
-    planner = call_groq(f"Analyze project deeply: {idea}")
+    # agents
+    planner = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Analyze: {improved}"}
+    ])
 
-    backend = call_groq(f"Generate full backend code: {planner}")
+    backend = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Backend code: {planner}"}
+    ])
 
-    frontend = call_groq(f"Generate full frontend UI: {planner}")
+    frontend = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Frontend UI: {planner}"}
+    ])
 
-    database = call_groq(f"Design database schema: {planner}")
+    database = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Database: {planner}"}
+    ])
 
-    deploy = call_groq(f"Give AWS deployment steps: {planner}")
+    deploy = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"AWS deploy: {planner}"}
+    ])
 
-    bugfix = call_groq(f"Find and fix all bugs in: {backend} {frontend}")
+    bugfix = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Fix bugs: {backend} {frontend}"}
+    ])
 
-    final = call_groq(f"Combine everything cleanly: {bugfix}")
+    optimize = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Optimize code: {bugfix}"}
+    ])
+
+    business = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Monetize this project: {improved}"}
+    ])
+
+    final = call_groq([
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Combine everything cleanly: {optimize}"}
+    ])
 
     result = {
         "planner": planner,
@@ -125,25 +133,51 @@ def generate(d: Data):
         "database": database,
         "deploy": deploy,
         "bugfix": bugfix,
+        "optimize": optimize,
+        "business": business,
         "final": final
     }
 
-    cache[idea] = result
+    projects.append({
+        "user": user,
+        "idea": improved,
+        "time": time.time()
+    })
 
     return result
 
-# ===== HEALTH CHECK =====
+# ===== CHAT MODE =====
+@app.post("/chat")
+def chat(d: ChatData):
+
+    global history
+
+    if credits.get("default", 0) <= 0:
+        return {"error": "No credits 🔒"}
+
+    credits["default"] -= 1
+
+    history.append({"role": "user", "content": d.message})
+
+    reply = call_groq(
+        [{"role": "system", "content": SYSTEM_PROMPT}] + history
+    )
+
+    history.append({"role": "assistant", "content": reply})
+
+    return {"reply": reply}
+
+# ===== STATS =====
+@app.get("/stats")
+def get_stats():
+    return stats
+
+# ===== PROJECTS =====
+@app.get("/projects")
+def get_projects():
+    return projects
+
+# ===== HEALTH =====
 @app.get("/")
 def home():
-    return {"msg": "AI Builder Bot Running 🚀"}
-
-# ===== GITHUB PUSH =====
-@app.get("/push")
-def push_code():
-    try:
-        subprocess.run(["git","add","."], check=True)
-        subprocess.run(["git","commit","-m","🚀 Auto update"], check=True)
-        subprocess.run(["git","push"], check=True)
-        return {"msg": "Pushed to GitHub 🚀"}
-    except Exception as e:
-        return {"msg": f"Push failed: {str(e)}"}
+    return {"msg": "AIMANT AI Running 🚀"}

@@ -6,101 +6,153 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
-<body class="bg-gradient-to-br from-black via-gray-900 to-black text-white">
+<body class="bg-black text-white flex flex-col h-screen">
 
 <!-- HEADER -->
-<div class="flex justify-between items-center p-4 border-b border-gray-800">
-<h1 class="text-2xl font-bold text-green-400">🚀 AIMANT AI</h1>
-<button onclick="showPage('login')" class="text-sm">Login</button>
+<div class="flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
+<h1 class="text-xl font-bold text-green-400">🚀 AIMANT AI</h1>
+<button onclick="loadStats()" class="text-sm bg-gray-700 px-3 py-1 rounded">Stats</button>
 </div>
 
-<!-- LOGIN PAGE -->
-<div id="loginPage" class="p-6">
-<h2 class="text-xl mb-3">🔐 Login</h2>
-<input id="user" placeholder="Username" class="w-full p-2 text-black mb-2">
-<input id="pass" placeholder="Password" class="w-full p-2 text-black mb-2">
-<button onclick="login()" class="bg-green-500 w-full p-2 rounded">Login</button>
+<!-- MAIN -->
+<div class="flex flex-1 overflow-hidden">
+
+<!-- LEFT: CHAT -->
+<div class="w-1/2 flex flex-col border-r border-gray-800">
+
+<div id="chat" class="flex-1 overflow-auto p-3 space-y-2"></div>
+
+<div class="p-3 flex gap-2">
+<input id="msg" class="flex-1 p-2 text-black rounded" placeholder="Chat or ask coding...">
+<button onclick="sendChat()" class="bg-green-500 px-3 rounded">Send</button>
 </div>
 
-<!-- DASHBOARD -->
-<div id="dashboard" class="hidden p-4">
-
-<!-- ANALYTICS -->
-<div class="grid grid-cols-2 gap-3 mb-4">
-<div class="bg-gray-800 p-3 rounded">Users: <span id="users">120</span></div>
-<div class="bg-gray-800 p-3 rounded">Revenue: ₹<span id="rev">5000</span></div>
 </div>
 
-<!-- IDEA INPUT -->
-<textarea id="idea" class="w-full p-3 text-black rounded"
-placeholder="Enter idea..."></textarea>
+<!-- RIGHT: BUILDER -->
+<div class="w-1/2 flex flex-col">
+
+<div class="p-3 border-b border-gray-800">
+<textarea id="idea" class="w-full p-2 text-black rounded"
+placeholder="Enter project idea..."></textarea>
 
 <div class="flex gap-2 mt-2">
-<button onclick="generate()" class="bg-green-500 px-3 py-2 rounded">Generate</button>
-<button onclick="showPage('payment')" class="bg-yellow-500 px-3 py-2 rounded">Upgrade</button>
+<button onclick="generate()" class="bg-blue-500 px-3 py-2 rounded">Generate</button>
+<button onclick="download()" class="bg-purple-500 px-3 py-2 rounded">Download</button>
+</div>
+</div>
+
+<!-- TABS -->
+<div class="flex flex-wrap gap-2 p-2">
+<button onclick="tab('planner')" class="tabBtn">Planner</button>
+<button onclick="tab('backend')" class="tabBtn">Backend</button>
+<button onclick="tab('frontend')" class="tabBtn">Frontend</button>
+<button onclick="tab('database')" class="tabBtn">Database</button>
+<button onclick="tab('deploy')" class="tabBtn">Deploy</button>
+<button onclick="tab('bugfix')" class="tabBtn">Bug Fix</button>
+<button onclick="tab('optimize')" class="tabBtn">Optimize</button>
+<button onclick="tab('business')" class="tabBtn">Business</button>
+<button onclick="tab('final')" class="tabBtn bg-purple-600">Final</button>
 </div>
 
 <!-- OUTPUT -->
-<pre id="output" class="bg-black mt-3 p-3 h-[250px] overflow-auto text-green-400"></pre>
+<pre id="output" class="flex-1 bg-gray-900 p-3 overflow-auto text-green-400"></pre>
 
 </div>
 
-<!-- PAYMENT PAGE -->
-<div id="paymentPage" class="hidden p-6">
-<h2 class="text-xl mb-3">💰 Upgrade Plan</h2>
-
-<div class="bg-gray-800 p-4 rounded mb-3">
-<h3>Pro Plan</h3>
-<p>₹499/month</p>
-<button onclick="pay()" class="bg-green-500 p-2 mt-2 w-full rounded">Pay Now</button>
 </div>
 
-<button onclick="showPage('dashboard')" class="text-sm text-gray-400">Back</button>
+<!-- MODAL STATS -->
+<div id="statsModal" class="hidden fixed inset-0 bg-black/80 flex justify-center items-center">
+<div class="bg-gray-900 p-6 rounded-xl w-80">
+<h2 class="text-lg mb-3">📊 Analytics</h2>
+<pre id="stats"></pre>
+<button onclick="closeStats()" class="mt-3 bg-red-500 px-3 py-1 rounded">Close</button>
+</div>
 </div>
 
-<!-- NAV -->
-<div class="fixed bottom-0 w-full flex justify-around bg-gray-900 p-2">
-<button onclick="showPage('dashboard')">🏠</button>
-<button onclick="showPage('payment')">💰</button>
-</div>
+<!-- STYLE -->
+<style>
+.tabBtn{
+    background:#1f2937;
+    padding:5px 10px;
+    border-radius:6px;
+    font-size:12px;
+}
+.tabBtn:hover{
+    background:#374151;
+}
+</style>
 
 <!-- SCRIPT -->
 <script>
-let currentUser = ""
 let data = {}
 
-function showPage(p){
-document.getElementById("loginPage").classList.add("hidden")
-document.getElementById("dashboard").classList.add("hidden")
-document.getElementById("paymentPage").classList.add("hidden")
-
-if(p=="login") document.getElementById("loginPage").classList.remove("hidden")
-if(p=="dashboard") document.getElementById("dashboard").classList.remove("hidden")
-if(p=="payment") document.getElementById("paymentPage").classList.remove("hidden")
-}
-
-async function login(){
-currentUser = user.value
-showPage("dashboard")
-}
-
 async function generate(){
-let res = await fetch("/generate",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body: JSON.stringify({idea: idea.value})
-})
+    let idea = document.getElementById("idea").value
+    if(!idea){ alert("Enter idea"); return }
 
-data = await res.json()
+    let res = await fetch("/generate",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({idea})
+    })
 
-if(data.error){ alert(data.error); return }
+    data = await res.json()
 
-output.innerText = data.final
+    if(data.error){
+        alert(data.error)
+        return
+    }
+
+    tab("planner")
 }
 
-function pay(){
-alert("Payment success 🚀 (Integrate Razorpay here)")
-showPage("dashboard")
+function tab(t){
+    document.getElementById("output").innerText = data[t] || "No data"
+}
+
+async function sendChat(){
+    let m = msg.value
+    if(!m) return
+
+    chat.innerHTML += `<div class="text-green-400">You: ${m}</div>`
+
+    let res = await fetch("/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({message:m})
+    })
+
+    let d = await res.json()
+
+    if(d.error){
+        alert(d.error)
+        return
+    }
+
+    chat.innerHTML += `<div class="text-blue-400">AI: ${d.reply}</div>`
+    msg.value=""
+    chat.scrollTop = chat.scrollHeight
+}
+
+function download(){
+    let blob = new Blob([data.final], {type:"text/plain"})
+    let a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = "project.txt"
+    a.click()
+}
+
+async function loadStats(){
+    let r = await fetch("/stats")
+    let d = await r.json()
+    stats.innerText = JSON.stringify(d,null,2)
+    statsModal.classList.remove("hidden")
+}
+
+function closeStats(){
+    statsModal.classList.add("hidden")
 }
 </script>
 
