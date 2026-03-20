@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMANT AI 🚀</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: white;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #38bdf8;
+}
+
+.card {
+    background: #1e293b;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 10px;
+}
+
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    background: #38bdf8;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0ea5e9;
+}
+
+pre {
+    background: black;
+    padding: 10px;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h1>🔥 AIMANT AI Dashboard</h1>
+
+<!-- 🔍 LEADS -->
+<div class="card">
+<h3>🔍 Find Leads</h3>
+<input id="query" placeholder="e.g salon in dubai whatsapp number">
+<button onclick="getLeads()">Get Leads</button>
+</div>
+
+<!-- 📲 WHATSAPP -->
+<div class="card">
+<h3>📲 WhatsApp Link</h3>
+<input id="number" placeholder="Enter number">
+<input id="msg" placeholder="Enter message">
+<button onclick="waLink()">Generate Link</button>
+</div>
+
+<!-- 🤖 AUTO AGENT -->
+<div class="card">
+<h3>🤖 Auto AI Agent</h3>
+<button onclick="autoRun()">🚀 Run Auto System</button>
+</div>
+
+<!-- 🔁 FOLLOW-UP -->
+<div class="card">
+<h3>🔁 Follow-Up</h3>
+<input id="followname" placeholder="Client name">
+<button onclick="followUp()">Send Follow-Up</button>
+</div>
+
+<!-- 📊 DASHBOARD -->
+<div class="card">
+<h3>📊 Leads Dashboard</h3>
+<button onclick="loadLeads()">Load Leads</button>
+</div>
+
+<!-- 💬 CHAT -->
+<div class="card">
+<h3>💬 AI Chat</h3>
+<input id="chatInput" placeholder="Ask anything...">
+<button onclick="chat()">Send</button>
+</div>
+
+<!-- 📊 OUTPUT -->
+<div class="card">
+<h3>📊 Output</h3>
+<pre id="output"></pre>
+</div>
+
+</div>
+
+<script>
+
+// 🔍 GET LEADS
+function getLeads() {
+    fetch("/leads", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({query: document.getElementById("query").value})
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("output").innerText =
+            data.leads.join("\n");
+    });
+}
+
+// 📲 WA LINK
+function waLink() {
+    fetch("/wa-link", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            number: document.getElementById("number").value,
+            message: document.getElementById("msg").value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("output").innerText = data.link;
+    });
+}
+
+// 🤖 AUTO AGENT
+function autoRun() {
+    const leads = [
+        {name:"Salon A", number:"919999999999", business:"salon"},
+        {name:"Gym B", number:"919888888888", business:"gym"}
+    ];
+
+    fetch("/auto-run", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({leads})
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("output").innerText =
+            data.results.map(r =>
+                "Name: " + r.name +
+                "\nNumber: " + r.number +
+                "\nLink: " + r.wa_link +
+                "\n------------------"
+            ).join("\n\n");
+    });
+}
+
+// 🔁 FOLLOW-UP
+function followUp() {
+    fetch("/follow-up", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            name: document.getElementById("followname").value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("output").innerText = data.message;
+    });
+}
+
+// 📊 LOAD LEADS
+function loadLeads() {
+    fetch("/get-leads")
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("output").innerText =
+            data.leads.map(l =>
+                l.name + " | " + l.number + " | " + l.status
+            ).join("\n");
+    });
+}
+
+// 💬 CHAT
+function chat() {
+    fetch("/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            task: document.getElementById("chatInput").value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("output").innerText = data.response;
+    });
+}
+
+</script>
+
+</body>
+</html>
