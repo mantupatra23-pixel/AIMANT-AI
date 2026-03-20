@@ -72,14 +72,30 @@ def call_groq(messages):
                 "Content-Type": "application/json"
             },
             json={
-                "model": "llama3-70b-8192",
+                # ✅ STABLE MODEL
+                "model": "llama3-8b-8192",
                 "messages": messages
             },
             timeout=60
         )
-        return res.json()["choices"][0]["message"]["content"]
+
+        data = res.json()
+
+        # 🔥 DEBUG (optional)
+        print("GROQ:", data)
+
+        # ❌ API error handle
+        if "error" in data:
+            return f"AI Error: {data['error']['message']}"
+
+        # ❌ no choices
+        if "choices" not in data:
+            return f"AI Error: Invalid response {data}"
+
+        return data["choices"][0]["message"]["content"]
+
     except Exception as e:
-        return f"AI Error: {str(e)}"
+        return f"Server Error: {str(e)}"
 
 # ===== GENERATE (MULTI-AGENT) =====
 @app.post("/generate")
