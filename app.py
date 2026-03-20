@@ -1,3 +1,4 @@
+from fastapi.responses import FileResponse
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,7 +8,9 @@ import requests, os, time
 app = FastAPI()
 
 # ===== STATIC FILE SERVE =====
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
+@app.get("/")
+def home():
+    return FileResponse("index.html")
 
 # ===== CORS =====
 app.add_middleware(
