@@ -144,9 +144,9 @@ def user_info():
     }
 
 # ===== UI ROUTE =====
-@app.get("/")
-def home():
-    return FileResponse("index.html")
+@app.get("/builder")
+def builder():
+    return FileResponse("builder.html")
 
 # ===== LOCAL RUN =====
 if __name__ == "__main__":

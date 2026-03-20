@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+<title>Builder</title>
+
+<style>
+.glass {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+}
+</style>
+
+</head>
+
+<body class="bg-black text-white flex h-screen">
+
+<!-- LEFT -->
+<div class="w-64 glass p-4">
+
+<h2 class="text-green-400 mb-4">⚡ Build Steps</h2>
+
+<div id="steps" class="space-y-2 text-sm">
+<div>⏳ Analyze Idea</div>
+<div>⏳ Generate Features</div>
+<div>⏳ Backend</div>
+<div>⏳ Frontend</div>
+<div>⏳ Deploy</div>
+</div>
+
+</div>
+
+<!-- RIGHT -->
+<div class="flex-1 p-4 flex flex-col">
+
+<div class="flex justify-between mb-3">
+    <div>
+        <button onclick="showTab('code')" class="bg-gray-700 px-3 py-1 rounded">Code</button>
+        <button onclick="showTab('preview')" class="bg-gray-700 px-3 py-1 rounded">Preview</button>
+    </div>
+
+    <div>
+        <button onclick="publish()" class="bg-green-500 px-3 py-1 rounded">Publish</button>
+        <button onclick="githubPush()" class="bg-purple-500 px-3 py-1 rounded">GitHub</button>
+    </div>
+</div>
+
+<pre id="output" class="flex-1 bg-black/40 p-3 rounded overflow-auto text-green-300">
+Starting build...
+</pre>
+
+</div>
+
+<script>
+
+let idea = localStorage.getItem("idea")
+
+async function runBuild(){
+
+    let res = await fetch("/generate", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({idea})
+    })
+
+    let data = await res.json()
+
+    document.getElementById("output").innerText =
+        "IDEA:\n" + data.idea +
+        "\n\nFEATURES:\n" + data.features +
+        "\n\nBACKEND:\n" + data.backend +
+        "\n\nFRONTEND:\n" + data.frontend +
+        "\n\nDEPLOY:\n" + data.deploy
+
+    updateSteps()
+}
+
+function updateSteps(){
+    document.getElementById("steps").innerHTML = `
+    <div>✅ Analyze Idea</div>
+    <div>✅ Features</div>
+    <div>✅ Backend</div>
+    <div>✅ Frontend</div>
+    <div>✅ Deploy</div>
+    `
+}
+
+function showTab(type){
+    if(type=="preview"){
+        document.getElementById("output").innerText = "Preview coming soon..."
+    }
+}
+
+function publish(){
+    alert("🚀 App Published (Demo)")
+}
+
+function githubPush(){
+    alert("📦 Code pushed to GitHub (Demo)")
+}
+
+runBuild()
+
+</script>
+
+</body>
+</html>
