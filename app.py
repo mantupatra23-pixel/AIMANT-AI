@@ -63,36 +63,39 @@ stats = {
 }
 
 # ===== GROQ CALL =====
+import time
+
 def call_groq(messages):
-    try:
-        res = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                # 🔥 NEW WORKING MODEL
-                "model": "llama-3.3-70b-versatile",
-                "messages": messages
-            },
-            timeout=60
-        )
+    for i in range(3):
+        try:
+            res = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": messages,
+                    "max_tokens": 800
+                },
+                timeout=60
+            )
 
-        data = res.json()
+            data = res.json()
 
-        print("GROQ:", data)
+            if "error" in data:
+                if "rate_limit" in str(data):
+                    time.sleep(2)
+                    continue
+                return f"AI Error: {data['error']['message']}"
 
-        if "error" in data:
-            return f"AI Error: {data['error']['message']}"
+            return data["choices"][0]["message"]["content"]
 
-        if "choices" not in data:
-            return f"AI Error: Invalid response {data}"
+        except Exception as e:
+            return f"Error: {str(e)}"
 
-        return data["choices"][0]["message"]["content"]
-
-    except Exception as e:
-        return f"Server Error: {str(e)}"
+    return "AI busy, try again 🚀"
 
 # ===== GENERATE (MULTI-AGENT) =====
 @app.post("/generate")
