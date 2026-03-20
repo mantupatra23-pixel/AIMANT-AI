@@ -1,71 +1,106 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI SaaS Builder</title>
+<title>AIMANT AI</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
-<body class="bg-black text-white p-6">
+<body class="bg-gradient-to-br from-black via-gray-900 to-black text-white">
 
-<h1 class="text-3xl mb-6">🚀 AI SaaS Builder</h1>
-
-<div class="grid grid-cols-2 gap-6">
-
-<div>
-<input id="u" placeholder="user" class="w-full p-2 text-black mb-2">
-<input id="p" placeholder="pass" class="w-full p-2 text-black mb-2">
-
-<button onclick="signup()" class="bg-green-500 p-2 w-full">Signup</button>
-<button onclick="login()" class="bg-blue-500 p-2 w-full mt-2">Login</button>
-<button onclick="upgrade()" class="bg-yellow-500 p-2 w-full mt-2">Upgrade</button>
-
-<textarea id="idea" class="w-full p-2 text-black mt-4" placeholder="Enter idea"></textarea>
-
-<button onclick="gen()" class="bg-purple-600 p-3 w-full mt-2">Generate</button>
+<!-- HEADER -->
+<div class="flex justify-between items-center p-4 border-b border-gray-800">
+<h1 class="text-2xl font-bold text-green-400">🚀 AIMANT AI</h1>
+<button onclick="showPage('login')" class="text-sm">Login</button>
 </div>
 
-<div>
-<h3>Planner</h3><pre id="pl"></pre>
-<h3>Backend</h3><pre id="be"></pre>
-<h3>Frontend</h3><pre id="fe"></pre>
-<h3>DevOps</h3><pre id="de"></pre>
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="p-6">
+<h2 class="text-xl mb-3">🔐 Login</h2>
+<input id="user" placeholder="Username" class="w-full p-2 text-black mb-2">
+<input id="pass" placeholder="Password" class="w-full p-2 text-black mb-2">
+<button onclick="login()" class="bg-green-500 w-full p-2 rounded">Login</button>
 </div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden p-4">
+
+<!-- ANALYTICS -->
+<div class="grid grid-cols-2 gap-3 mb-4">
+<div class="bg-gray-800 p-3 rounded">Users: <span id="users">120</span></div>
+<div class="bg-gray-800 p-3 rounded">Revenue: ₹<span id="rev">5000</span></div>
+</div>
+
+<!-- IDEA INPUT -->
+<textarea id="idea" class="w-full p-3 text-black rounded"
+placeholder="Enter idea..."></textarea>
+
+<div class="flex gap-2 mt-2">
+<button onclick="generate()" class="bg-green-500 px-3 py-2 rounded">Generate</button>
+<button onclick="showPage('payment')" class="bg-yellow-500 px-3 py-2 rounded">Upgrade</button>
+</div>
+
+<!-- OUTPUT -->
+<pre id="output" class="bg-black mt-3 p-3 h-[250px] overflow-auto text-green-400"></pre>
 
 </div>
 
+<!-- PAYMENT PAGE -->
+<div id="paymentPage" class="hidden p-6">
+<h2 class="text-xl mb-3">💰 Upgrade Plan</h2>
+
+<div class="bg-gray-800 p-4 rounded mb-3">
+<h3>Pro Plan</h3>
+<p>₹499/month</p>
+<button onclick="pay()" class="bg-green-500 p-2 mt-2 w-full rounded">Pay Now</button>
+</div>
+
+<button onclick="showPage('dashboard')" class="text-sm text-gray-400">Back</button>
+</div>
+
+<!-- NAV -->
+<div class="fixed bottom-0 w-full flex justify-around bg-gray-900 p-2">
+<button onclick="showPage('dashboard')">🏠</button>
+<button onclick="showPage('payment')">💰</button>
+</div>
+
+<!-- SCRIPT -->
 <script>
-let user=""
+let currentUser = ""
+let data = {}
 
-async function signup(){
-await fetch("/signup",{method:"POST",headers:{"Content-Type":"application/json"},
-body:JSON.stringify({username:u.value,password:p.value})})
-alert("signup")
+function showPage(p){
+document.getElementById("loginPage").classList.add("hidden")
+document.getElementById("dashboard").classList.add("hidden")
+document.getElementById("paymentPage").classList.add("hidden")
+
+if(p=="login") document.getElementById("loginPage").classList.remove("hidden")
+if(p=="dashboard") document.getElementById("dashboard").classList.remove("hidden")
+if(p=="payment") document.getElementById("paymentPage").classList.remove("hidden")
 }
 
 async function login(){
-user=u.value
-await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},
-body:JSON.stringify({username:u.value,password:p.value})})
-alert("login")
+currentUser = user.value
+showPage("dashboard")
 }
 
-async function upgrade(){
-await fetch(`/upgrade?username=${user}`,{method:"POST"})
-alert("pro")
-}
-
-async function gen(){
-let r=await fetch("/generate",{method:"POST",
+async function generate(){
+let res = await fetch("/generate",{
+method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({username:user,idea:idea.value})})
+body: JSON.stringify({idea: idea.value})
+})
 
-let d=await r.json()
-if(d.error){alert(d.error);return}
+data = await res.json()
 
-pl.innerText=d.planner
-be.innerText=d.backend
-fe.innerText=d.frontend
-de.innerText=d.devops
+if(data.error){ alert(data.error); return }
+
+output.innerText = data.final
+}
+
+function pay(){
+alert("Payment success 🚀 (Integrate Razorpay here)")
+showPage("dashboard")
 }
 </script>
 

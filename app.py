@@ -1,12 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import requests, os, hashlib, time
-from pymongo import MongoClient
+import requests, os, subprocess, time
 
 app = FastAPI()
 
-# CORS
+# ===== CORS =====
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,104 +14,136 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ENV
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MONGO_URL = os.getenv("MONGO_URL")
 
-client = MongoClient(MONGO_URL)
-db = client["ai_saas"]
-users = db["users"]
-logs = db["logs"]
+# ===== SYSTEM PROMPT =====
+SYSTEM_PROMPT = """
+You are an autonomous AI software development agency.
 
-# Models
-class Auth(BaseModel):
-    username: str
-    password: str
+You ONLY generate COMPLETE WORKING CODE.
 
-class Generate(BaseModel):
-    username: str
+You must:
+- Build backend
+- Build frontend
+- Add database
+- Add deployment
+
+Also:
+- Detect bugs
+- Fix bugs automatically
+- Return clean code
+
+Format:
+1. Overview
+2. Folder Structure
+3. Backend Code
+4. Frontend Code
+5. Database
+6. Deployment
+"""
+
+# ===== MODEL =====
+class Data(BaseModel):
     idea: str
 
-# Utils
-def hash_pass(p):
-    return hashlib.sha256(p.encode()).hexdigest()
+# ===== MEMORY / CACHE / USAGE =====
+memory = {}
+cache = {}
+usage = {}
 
-def groq(prompt):
-    res = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "llama3-70b-8192",
-            "messages": [{"role":"user","content":prompt}]
-        }
-    )
-    return res.json()["choices"][0]["message"]["content"]
+# ===== GROQ CALL =====
+def call_groq(prompt):
+    try:
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama3-70b-8192",
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ]
+            },
+            timeout=60
+        )
+        return res.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-# AUTH
-@app.post("/signup")
-def signup(a: Auth):
-    if users.find_one({"username": a.username}):
-        raise HTTPException(400,"exists")
+# ===== TEMPLATE BOOST =====
+def template_boost(idea):
+    i = idea.lower()
+    if "salon" in i:
+        return idea + " with booking system, pricing, admin panel"
+    if "gym" in i:
+        return idea + " with membership system, trainer booking"
+    if "clinic" in i:
+        return idea + " with appointment system and patient records"
+    return idea
 
-    users.insert_one({
-        "username": a.username,
-        "password": hash_pass(a.password),
-        "plan":"free",
-        "usage":0,
-        "created": time.time()
-    })
-    return {"msg":"ok"}
-
-@app.post("/login")
-def login(a: Auth):
-    u = users.find_one({"username": a.username})
-    if not u: raise HTTPException(404,"no user")
-    if u["password"] != hash_pass(a.password):
-        raise HTTPException(401,"wrong")
-    return {"msg":"ok","plan":u["plan"]}
-
-# PAYMENT SIMULATION
-@app.post("/upgrade")
-def upgrade(username:str):
-    users.update_one({"username":username},{"$set":{"plan":"pro"}})
-    return {"msg":"pro activated"}
-
-# MULTI AGENT
-def agents(idea):
-    planner = groq(f"Break into steps: {idea}")
-    backend = groq(f"Generate backend: {planner}")
-    frontend = groq(f"Generate frontend: {planner}")
-    devops = groq(f"Deployment steps AWS: {planner}")
-    debug = groq(f"Fix issues: {backend} {frontend}")
-    return planner, backend, frontend, devops, debug
-
-# MAIN
+# ===== MAIN =====
 @app.post("/generate")
-def generate(g: Generate):
+def generate(d: Data):
 
-    u = users.find_one({"username": g.username})
-    if not u: raise HTTPException(404,"user")
+    user = "default"
 
-    if u["plan"]=="free" and u["usage"]>=5:
-        return {"error":"Upgrade needed"}
+    # usage limit
+    usage[user] = usage.get(user, 0) + 1
+    if usage[user] > 5:
+        return {"error": "Upgrade required 🔒"}
 
-    users.update_one({"username":g.username},{"$inc":{"usage":1}})
+    idea = template_boost(d.idea)
 
-    planner, backend, frontend, devops, debug = agents(g.idea)
+    # cache check
+    if idea in cache:
+        return cache[idea]
 
-    logs.insert_one({
-        "user": g.username,
-        "idea": g.idea,
-        "time": time.time()
-    })
+    memory[user] = idea
 
-    return {
+    # ===== MULTI AGENTS =====
+    planner = call_groq(f"Analyze project deeply: {idea}")
+
+    backend = call_groq(f"Generate full backend code: {planner}")
+
+    frontend = call_groq(f"Generate full frontend UI: {planner}")
+
+    database = call_groq(f"Design database schema: {planner}")
+
+    deploy = call_groq(f"Give AWS deployment steps: {planner}")
+
+    bugfix = call_groq(f"Find and fix all bugs in: {backend} {frontend}")
+
+    final = call_groq(f"Combine everything cleanly: {bugfix}")
+
+    result = {
         "planner": planner,
         "backend": backend,
         "frontend": frontend,
-        "devops": devops,
-        "final": debug
+        "database": database,
+        "deploy": deploy,
+        "bugfix": bugfix,
+        "final": final
     }
+
+    cache[idea] = result
+
+    return result
+
+# ===== HEALTH CHECK =====
+@app.get("/")
+def home():
+    return {"msg": "AI Builder Bot Running 🚀"}
+
+# ===== GITHUB PUSH =====
+@app.get("/push")
+def push_code():
+    try:
+        subprocess.run(["git","add","."], check=True)
+        subprocess.run(["git","commit","-m","🚀 Auto update"], check=True)
+        subprocess.run(["git","push"], check=True)
+        return {"msg": "Pushed to GitHub 🚀"}
+    except Exception as e:
+        return {"msg": f"Push failed: {str(e)}"}
