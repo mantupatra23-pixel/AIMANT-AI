@@ -1,218 +1,72 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIMANT AI 🚀</title>
-
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: white;
-    margin: 0;
-    padding: 0;
-}
-
-.container {
-    max-width: 900px;
-    margin: auto;
-    padding: 20px;
-}
-
-h1 {
-    text-align: center;
-    color: #38bdf8;
-}
-
-.card {
-    background: #1e293b;
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 10px;
-}
-
-input, button {
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 8px;
-    border: none;
-}
-
-button {
-    background: #38bdf8;
-    color: black;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #0ea5e9;
-}
-
-pre {
-    background: black;
-    padding: 10px;
-    border-radius: 8px;
-    overflow-x: auto;
-}
-</style>
-
+<title>AI SaaS Builder</title>
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
 
-<div class="container">
+<body class="bg-black text-white p-6">
 
-<h1>🔥 AIMANT AI Dashboard</h1>
+<h1 class="text-3xl mb-6">🚀 AI SaaS Builder</h1>
 
-<!-- 🔍 LEADS -->
-<div class="card">
-<h3>🔍 Find Leads</h3>
-<input id="query" placeholder="e.g salon in dubai whatsapp number">
-<button onclick="getLeads()">Get Leads</button>
+<div class="grid grid-cols-2 gap-6">
+
+<div>
+<input id="u" placeholder="user" class="w-full p-2 text-black mb-2">
+<input id="p" placeholder="pass" class="w-full p-2 text-black mb-2">
+
+<button onclick="signup()" class="bg-green-500 p-2 w-full">Signup</button>
+<button onclick="login()" class="bg-blue-500 p-2 w-full mt-2">Login</button>
+<button onclick="upgrade()" class="bg-yellow-500 p-2 w-full mt-2">Upgrade</button>
+
+<textarea id="idea" class="w-full p-2 text-black mt-4" placeholder="Enter idea"></textarea>
+
+<button onclick="gen()" class="bg-purple-600 p-3 w-full mt-2">Generate</button>
 </div>
 
-<!-- 📲 WHATSAPP -->
-<div class="card">
-<h3>📲 WhatsApp Link</h3>
-<input id="number" placeholder="Enter number">
-<input id="msg" placeholder="Enter message">
-<button onclick="waLink()">Generate Link</button>
-</div>
-
-<!-- 🤖 AUTO AGENT -->
-<div class="card">
-<h3>🤖 Auto AI Agent</h3>
-<button onclick="autoRun()">🚀 Run Auto System</button>
-</div>
-
-<!-- 🔁 FOLLOW-UP -->
-<div class="card">
-<h3>🔁 Follow-Up</h3>
-<input id="followname" placeholder="Client name">
-<button onclick="followUp()">Send Follow-Up</button>
-</div>
-
-<!-- 📊 DASHBOARD -->
-<div class="card">
-<h3>📊 Leads Dashboard</h3>
-<button onclick="loadLeads()">Load Leads</button>
-</div>
-
-<!-- 💬 CHAT -->
-<div class="card">
-<h3>💬 AI Chat</h3>
-<input id="chatInput" placeholder="Ask anything...">
-<button onclick="chat()">Send</button>
-</div>
-
-<!-- 📊 OUTPUT -->
-<div class="card">
-<h3>📊 Output</h3>
-<pre id="output"></pre>
+<div>
+<h3>Planner</h3><pre id="pl"></pre>
+<h3>Backend</h3><pre id="be"></pre>
+<h3>Frontend</h3><pre id="fe"></pre>
+<h3>DevOps</h3><pre id="de"></pre>
 </div>
 
 </div>
 
 <script>
+let user=""
 
-// 🔍 GET LEADS
-function getLeads() {
-    fetch("/leads", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({query: document.getElementById("query").value})
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("output").innerText =
-            data.leads.join("\n");
-    });
+async function signup(){
+await fetch("/signup",{method:"POST",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({username:u.value,password:p.value})})
+alert("signup")
 }
 
-// 📲 WA LINK
-function waLink() {
-    fetch("/wa-link", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            number: document.getElementById("number").value,
-            message: document.getElementById("msg").value
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("output").innerText = data.link;
-    });
+async function login(){
+user=u.value
+await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},
+body:JSON.stringify({username:u.value,password:p.value})})
+alert("login")
 }
 
-// 🤖 AUTO AGENT
-function autoRun() {
-    const leads = [
-        {name:"Salon A", number:"919999999999", business:"salon"},
-        {name:"Gym B", number:"919888888888", business:"gym"}
-    ];
-
-    fetch("/auto-run", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({leads})
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("output").innerText =
-            data.results.map(r =>
-                "Name: " + r.name +
-                "\nNumber: " + r.number +
-                "\nLink: " + r.wa_link +
-                "\n------------------"
-            ).join("\n\n");
-    });
+async function upgrade(){
+await fetch(`/upgrade?username=${user}`,{method:"POST"})
+alert("pro")
 }
 
-// 🔁 FOLLOW-UP
-function followUp() {
-    fetch("/follow-up", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            name: document.getElementById("followname").value
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("output").innerText = data.message;
-    });
-}
+async function gen(){
+let r=await fetch("/generate",{method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({username:user,idea:idea.value})})
 
-// 📊 LOAD LEADS
-function loadLeads() {
-    fetch("/get-leads")
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("output").innerText =
-            data.leads.map(l =>
-                l.name + " | " + l.number + " | " + l.status
-            ).join("\n");
-    });
-}
+let d=await r.json()
+if(d.error){alert(d.error);return}
 
-// 💬 CHAT
-function chat() {
-    fetch("/chat", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            task: document.getElementById("chatInput").value
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("output").innerText = data.response;
-    });
+pl.innerText=d.planner
+be.innerText=d.backend
+fe.innerText=d.frontend
+de.innerText=d.devops
 }
-
 </script>
 
 </body>
