@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AIMANT AI Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 text-white p-4">
+
+<h1 class="text-2xl mb-4 text-purple-400">⚡ ADMIN PANEL</h1>
+
+<!-- STATS -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+<div class="bg-gray-800 p-4 rounded">
+<p>Users</p>
+<h2 id="users" class="text-xl">0</h2>
+</div>
+
+<div class="bg-gray-800 p-4 rounded">
+<p>Projects</p>
+<h2 id="projects" class="text-xl">0</h2>
+</div>
+
+<div class="bg-gray-800 p-4 rounded">
+<p>Revenue</p>
+<h2 id="revenue" class="text-xl">0</h2>
+</div>
+
+<div class="bg-gray-800 p-4 rounded">
+<p>Active Builds</p>
+<h2 id="builds" class="text-xl">0</h2>
+</div>
+
+</div>
+
+<!-- REFRESH -->
+<button onclick="load()" class="bg-purple-600 px-4 py-2 mb-4">
+Refresh
+</button>
+
+<!-- USERS -->
+<div class="bg-gray-800 p-4 rounded mb-4">
+<h2 class="text-lg mb-2">👥 Users</h2>
+<div id="userList" class="text-sm text-gray-300"></div>
+</div>
+
+<!-- LOG -->
+<div class="bg-black p-4 rounded h-40 overflow-auto text-xs">
+System running...
+</div>
+
+<script>
+
+async function load(){
+    let res = await fetch("/dashboard-advanced")
+    let d = await res.json()
+
+    users.innerText = d.users
+    projects.innerText = d.projects
+    revenue.innerText = "₹"+d.revenue
+    builds.innerText = d.active_builds
+
+    loadUsers()
+}
+
+async function loadUsers(){
+    let res = await fetch("/admin-users")
+    let d = await res.json()
+
+    let html = ""
+
+    d.forEach(u=>{
+        html += `<div>📧 ${u.email} | 💰 ${u.credits}</div>`
+    })
+
+    userList.innerHTML = html
+}
+
+load()
+
+</script>
+
+</body>
+</html>

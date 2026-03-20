@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AIMANT AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-950 text-white">
+
+<!-- NAV -->
+<div class="flex justify-between p-4 bg-black">
+<h1 class="text-xl font-bold text-purple-400">⚡ AIMANT AI</h1>
+<a href="/" class="bg-purple-600 px-4 py-2 rounded">Get Started</a>
+</div>
+
+<!-- HERO -->
+<section class="text-center py-20 px-4">
+<h1 class="text-4xl md:text-6xl font-bold mb-4">
+Build Apps with AI 🚀
+</h1>
+<p class="text-gray-400 mb-6">
+Turn your ideas into live apps instantly with AI
+</p>
+
+<a href="/" class="bg-purple-600 px-6 py-3 rounded text-lg">
+Start Building
+</a>
+</section>
+
+<!-- FEATURES -->
+<section class="grid md:grid-cols-3 gap-6 p-6">
+
+<div class="bg-gray-800 p-6 rounded">
+<h3 class="text-xl mb-2">⚡ AI Builder</h3>
+<p class="text-gray-400">Generate full apps with one idea</p>
+</div>
+
+<div class="bg-gray-800 p-6 rounded">
+<h3 class="text-xl mb-2">🚀 Live Deploy</h3>
+<p class="text-gray-400">Instantly launch your app</p>
+</div>
+
+<div class="bg-gray-800 p-6 rounded">
+<h3 class="text-xl mb-2">💰 Monetization</h3>
+<p class="text-gray-400">Earn with built-in strategies</p>
+</div>
+
+</section>
+
+<!-- PRICING -->
+<section class="py-16 px-6 text-center">
+
+<h2 class="text-3xl mb-10">💰 Pricing</h2>
+
+<div class="grid md:grid-cols-3 gap-6">
+
+<!-- FREE -->
+<div class="bg-gray-800 p-6 rounded">
+<h3 class="text-xl mb-2">Free</h3>
+<p class="text-3xl mb-4">₹0</p>
+<ul class="text-gray-400 mb-4">
+<li>5 Builds</li>
+<li>Basic AI</li>
+</ul>
+<button class="bg-purple-600 px-4 py-2 rounded">Start</button>
+</div>
+
+<!-- PRO -->
+<div class="bg-purple-700 p-6 rounded scale-105">
+<h3 class="text-xl mb-2">Pro</h3>
+<p class="text-3xl mb-4">₹299</p>
+<ul class="mb-4">
+<li>50 Builds</li>
+<li>Fast AI</li>
+<li>Deploy</li>
+</ul>
+<button onclick="buy(299)" class="bg-black px-4 py-2 rounded">
+Buy Now
+</button>
+</div>
+
+<!-- PREMIUM -->
+<div class="bg-gray-800 p-6 rounded">
+<h3 class="text-xl mb-2">Premium</h3>
+<p class="text-3xl mb-4">₹999</p>
+<ul class="text-gray-400 mb-4">
+<li>Unlimited Builds</li>
+<li>All Features</li>
+</ul>
+<button onclick="buy(999)" class="bg-purple-600 px-4 py-2 rounded">
+Buy Now
+</button>
+</div>
+
+</div>
+
+</section>
+
+<!-- FOOTER -->
+<footer class="text-center p-6 text-gray-500">
+© AIMANT AI - All Rights Reserved
+</footer>
+
+<script>
+async function buy(amount){
+    let token = localStorage.getItem("token")
+
+    let res = await fetch("/pay",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            Authorization:token
+        },
+        body:JSON.stringify({amount})
+    })
+
+    let d = await res.json()
+    alert("Payment Success! Credits: "+d.credits)
+}
+</script>
+
+</body>
+</html>

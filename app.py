@@ -1,11 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import requests, os, time, uuid, zipfile
+import requests, os, time, uuid, jwt
 from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 
 app = FastAPI()
+
+# ===== CONFIG =====
+SECRET = "aimant_secret"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+ADMIN_EMAIL = "admin@aimant.ai"
 
 # ===== CORS =====
 app.add_middleware(
@@ -16,20 +22,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ===== CONFIG =====
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-
-# ===== DATABASE (TEMP MEMORY) =====
+# ===== STORAGE =====
 users = {}
-projects = []
 builds = {}
-last_request = {}
+memory = {}
+templates = {}
+deployments = {}
+blocked_users = set()
+daily_stats = []
 
 stats = {
     "users": 0,
-    "requests": 0,
-    "projects": 0
+    "projects": 0,
+    "revenue": 0
 }
 
 # ===== MODELS =====
@@ -37,265 +42,244 @@ class User(BaseModel):
     email: str
     password: str
 
-class Data(BaseModel):
-    idea: str
-    email: str = "guest"
-
 class BuildRequest(BaseModel):
     idea: str
-    email: str = "guest"
 
-# ===== HELPER =====
-def check_limit(user):
-    now = time.time()
-    if user in last_request and now - last_request[user] < 2:
-        return False
-    last_request[user] = now
-    return True
+# ===== AUTH =====
+def create_token(email):
+    return jwt.encode({"email":email}, SECRET, algorithm="HS256")
 
-def agent(prompt, input):
+def get_user(token):
+    try:
+        return jwt.decode(token, SECRET, algorithms=["HS256"])["email"]
+    except:
+        return None
+
+def is_admin(user):
+    return user == ADMIN_EMAIL
+
+# ===== MEMORY =====
+def save_memory(user, text):
+    memory.setdefault(user, []).append(text)
+
+def get_memory(user):
+    return "\n".join(memory.get(user, [])[-3:])
+
+# ===== LOG =====
+def log(bid, msg):
+    builds[bid]["logs"].append(f"{time.strftime('%H:%M:%S')} - {msg}")
+
+# ===== AI =====
+def call_groq(messages):
+    try:
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.1-8b-instant",
+                "messages": messages,
+                "max_tokens": 800
+            }
+        )
+        return res.json()["choices"][0]["message"]["content"]
+    except:
+        return "AI Error"
+
+def agent(role, text):
     return call_groq([
-        {"role": "system", "content": prompt},
-        {"role": "user", "content": input}
+        {"role":"system","content":role},
+        {"role":"user","content":text}
     ])
 
-def add_log(build_id, msg):
-    builds[build_id]["logs"].append(msg)
+# ===== PROMPT ENGINE =====
+def smart_prompt(idea):
+    return f"Build premium SaaS app: {idea}"
 
-# ===== GROQ CALL =====
-def call_groq(messages):
-    for i in range(3):
-        try:
-            res = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {GROQ_API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "llama-3.1-8b-instant",
-                    "messages": messages,
-                    "max_tokens": 800
-                },
-                timeout=60
-            )
+# ===== FAST BUILD =====
+def fast_build(idea):
+    with ThreadPoolExecutor() as ex:
+        f1 = ex.submit(agent, "Create features", idea)
+        f2 = ex.submit(agent, "Create UI", idea)
+    return f1.result(), f2.result()
 
-            data = res.json()
+# ===== DEPLOY =====
+def deploy_project(bid):
+    log(bid, "🚀 Deploying...")
+    time.sleep(2)
 
-            if "error" in data:
-                if "rate_limit" in str(data):
-                    time.sleep(2)
-                    continue
-                return f"AI Error: {data['error']['message']}"
+    url = f"https://aimant-{bid[:6]}.onrender.com"
 
-            if "choices" not in data:
-                return "Invalid AI response"
+    deployments[bid] = {"status":"live","url":url}
+    log(bid, f"🌍 Live: {url}")
 
-            return data["choices"][0]["message"]["content"]
+def auto_deploy(bid):
+    Thread(target=deploy_project, args=(bid,)).start()
 
-        except Exception as e:
-            return f"Server Error: {str(e)}"
-
-    return "AI busy, try again"
+# ===== DAILY STATS =====
+def update_daily():
+    daily_stats.append({
+        "time": time.time(),
+        "users": stats["users"],
+        "projects": stats["projects"],
+        "revenue": stats["revenue"]
+    })
 
 # ===== AUTH =====
 @app.post("/signup")
 def signup(u: User):
     if u.email in users:
-        return {"error": "User exists"}
+        return {"error":"User exists"}
 
-    users[u.email] = {
-        "password": u.password,
-        "credits": 20
-    }
-
+    users[u.email] = {"password":u.password,"credits":5}
     stats["users"] += 1
-    return {"msg": "Signup success"}
+
+    return {"token":create_token(u.email)}
 
 @app.post("/login")
 def login(u: User):
+    if u.email in blocked_users:
+        return {"error":"User blocked"}
+
     if u.email in users and users[u.email]["password"] == u.password:
-        return {"msg": "Login success"}
-    return {"error": "Invalid login"}
+        return {"token":create_token(u.email)}
 
-# ===== SIMPLE GENERATE =====
-@app.post("/generate")
-def generate(d: Data):
-    user = users.get(d.email, {"credits": 5})
+    return {"error":"Invalid"}
 
-    if not check_limit(d.email):
-        return {"error": "Slow down"}
-
-    if user["credits"] <= 0:
-        return {"error": "No credits"}
-
-    user["credits"] -= 1
-    stats["requests"] += 1
-
-    idea = d.idea
-
-    improved = agent("Improve SaaS idea", idea)
-    features = agent("Generate features", improved)
-    backend = agent("Generate FastAPI backend", features)
-    frontend = agent("Generate modern UI", features)
-    deploy = agent("Explain deployment", backend)
-
-    projects.append({
-        "user": d.email,
-        "idea": improved,
-        "time": time.time()
-    })
-
-    stats["projects"] += 1
-
-    return {
-        "idea": improved,
-        "features": features,
-        "backend": backend,
-        "frontend": frontend,
-        "deploy": deploy
-    }
-
-# ===== START BUILD =====
+# ===== BUILD =====
 @app.post("/start-build")
-def start_build(req: BuildRequest):
-    build_id = str(uuid.uuid4())
+def start_build(req: BuildRequest, authorization: str = Header(None)):
+    user = get_user(authorization) or "guest"
 
-    builds[build_id] = {
-        "status": "starting",
-        "step": "init",
-        "logs": [],
-        "data": {}
-    }
+    if user in blocked_users:
+        return {"error":"Blocked"}
 
-    Thread(target=run_build, args=(build_id, req.idea, req.email)).start()
+    if user != "guest":
+        if users[user]["credits"] <= 0:
+            return {"error":"No credits"}
+        users[user]["credits"] -= 1
 
-    return {"build_id": build_id}
+    bid = str(uuid.uuid4())
+
+    builds[bid] = {"status":"running","logs":[],"data":{}}
+
+    Thread(target=run_build, args=(bid, req.idea, user)).start()
+
+    return {"build_id":bid}
 
 # ===== BUILD PIPELINE =====
-def run_build(build_id, idea, email):
+def run_build(bid, idea, user):
     try:
-        add_log(build_id, "🚀 Start build")
+        log(bid,"🚀 Start")
 
-        builds[build_id]["step"] = "analyzing"
-        improved = agent("Improve SaaS idea", idea)
-        builds[build_id]["data"]["idea"] = improved
-        add_log(build_id, "Idea improved")
+        idea = smart_prompt(idea + get_memory(user))
 
-        builds[build_id]["step"] = "features"
-        features = agent("Generate features", improved)
-        builds[build_id]["data"]["features"] = features
-        add_log(build_id, "Features ready")
+        features, frontend = fast_build(idea)
+        backend = agent("Create backend", features)
+        monetization = agent("Create pricing", idea)
 
-        builds[build_id]["step"] = "backend"
-        backend = agent("Generate FastAPI backend", features)
-        builds[build_id]["data"]["backend"] = backend
-        add_log(build_id, "Backend ready")
+        builds[bid]["data"] = {
+            "features":features,
+            "frontend":frontend,
+            "backend":backend,
+            "monetization":monetization
+        }
 
-        builds[build_id]["step"] = "frontend"
-        frontend = agent("Generate modern UI", features)
-        builds[build_id]["data"]["frontend"] = frontend
-        add_log(build_id, "Frontend ready")
+        save_memory(user, idea)
+        templates["latest"] = frontend
 
-        builds[build_id]["step"] = "deploy"
-        deploy = agent("Explain deployment", backend)
-        builds[build_id]["data"]["deploy"] = deploy
-        add_log(build_id, "Deploy ready")
-
-        save_project(build_id, frontend)
-
-        builds[build_id]["status"] = "completed"
-        builds[build_id]["step"] = "done"
-
-        projects.append({
-            "user": email,
-            "idea": improved,
-            "time": time.time()
-        })
+        builds[bid]["status"]="done"
+        log(bid,"✅ Done")
 
         stats["projects"] += 1
+        update_daily()
+
+        auto_deploy(bid)
 
     except Exception as e:
-        builds[build_id]["status"] = "error"
-        builds[build_id]["error"] = str(e)
-
-# ===== SAVE FILE =====
-def save_project(build_id, code):
-    folder = f"projects/{build_id}"
-    os.makedirs(folder, exist_ok=True)
-
-    with open(f"{folder}/index.html", "w") as f:
-        f.write(code)
+        builds[bid]["status"]="error"
+        builds[bid]["error"]=str(e)
 
 # ===== STATUS =====
-@app.get("/build-status/{build_id}")
-def build_status(build_id: str):
-    return builds.get(build_id, {"error": "Not found"})
+@app.get("/build-status/{bid}")
+def status(bid: str):
+    return builds.get(bid, {})
+
+# ===== DEPLOY STATUS =====
+@app.get("/deploy-status/{bid}")
+def deploy_status(bid: str):
+    return deployments.get(bid, {"status":"pending"})
 
 # ===== DOWNLOAD =====
-@app.get("/download/{build_id}")
-def download(build_id: str):
-    folder = f"projects/{build_id}"
-    zip_path = f"{build_id}.zip"
+@app.get("/download/{bid}")
+def download(bid: str):
+    file = f"{bid}.html"
+    with open(file,"w") as f:
+        f.write(builds[bid]["data"]["frontend"])
+    return FileResponse(file)
 
-    with zipfile.ZipFile(zip_path, 'w') as zipf:
-        for root, dirs, files in os.walk(folder):
-            for file in files:
-                zipf.write(os.path.join(root, file))
+# ===== CHAT =====
+@app.post("/chat")
+def chat(build_id: str, message: str):
+    code = builds[build_id]["data"]["frontend"]
+    updated = agent("Modify UI", code + "\n" + message)
+    return {"updated":updated}
 
-    return FileResponse(zip_path)
-
-# ===== GITHUB PUSH =====
-@app.post("/push-github")
-def push_github(build_id: str):
-    build = builds.get(build_id)
-
-    if not build:
-        return {"error": "Invalid build"}
-
-    content = build["data"].get("frontend", "")
-
-    url = "https://api.github.com/repos/YOUR_USERNAME/ai-projects/contents/index.html"
-
-    res = requests.put(
-        url,
-        headers={"Authorization": f"token {GITHUB_TOKEN}"},
-        json={
-            "message": "AI Project",
-            "content": content.encode("utf-8").decode("latin1")
-        }
-    )
-
-    return res.json()
-
-# ===== PUBLISH =====
-@app.post("/publish")
-def publish(build_id: str):
+# ===== DASHBOARD =====
+@app.get("/dashboard")
+def dashboard(authorization: str = Header(None)):
+    user = get_user(authorization)
     return {
-        "status": "live",
-        "url": f"https://ai-{build_id}.onrender.com"
+        "credits":users.get(user,{}).get("credits",0),
+        "templates":list(templates.keys())
     }
 
-# ===== STATS =====
-@app.get("/stats")
-def stats_api():
-    return stats
+# ===== ADMIN =====
+@app.post("/admin/block")
+def block_user(email: str, authorization: str = Header(None)):
+    if not is_admin(get_user(authorization)):
+        return {"error":"Not admin"}
 
-# ===== PROJECTS =====
-@app.get("/projects")
-def project_api():
-    return projects
+    blocked_users.add(email)
+    return {"msg":"Blocked"}
 
-# ===== USER =====
-@app.get("/user/{email}")
-def user_info(email: str):
-    user = users.get(email)
-    if not user:
-        return {"error": "User not found"}
+@app.post("/admin/unblock")
+def unblock_user(email: str, authorization: str = Header(None)):
+    if not is_admin(get_user(authorization)):
+        return {"error":"Not admin"}
+
+    blocked_users.discard(email)
+    return {"msg":"Unblocked"}
+
+@app.get("/admin-users")
+def admin_users():
+    return [{"email":e,"credits":d["credits"]} for e,d in users.items()]
+
+@app.get("/admin-analytics")
+def analytics():
+    return {
+        "users":stats["users"],
+        "projects":stats["projects"],
+        "revenue":stats["revenue"],
+        "builds":len(builds)
+    }
+
+@app.get("/admin-graph")
+def graph():
+    return daily_stats
+
+@app.get("/admin-secure")
+def admin_secure(authorization: str = Header(None)):
+    user = get_user(authorization)
+
+    if not is_admin(user):
+        return {"error":"Access denied"}
 
     return {
-        "credits": user["credits"],
-        "projects": len(projects)
+        "users":users,
+        "blocked":list(blocked_users)
     }
 
 # ===== UI =====
@@ -306,6 +290,14 @@ def home():
 @app.get("/builder")
 def builder():
     return FileResponse("builder.html")
+
+@app.get("/admin")
+def admin_ui():
+    return FileResponse("admin.html")
+
+@app.get("/landing")
+def landing():
+    return FileResponse("landing.html")
 
 # ===== RUN =====
 if __name__ == "__main__":

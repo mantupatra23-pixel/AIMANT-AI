@@ -6,19 +6,18 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-.glass{
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
-}
+body { font-family: sans-serif; }
+.glow { box-shadow: 0 0 15px #8b5cf6; }
 </style>
+
 </head>
 
 <body class="bg-gray-900 text-white flex h-screen overflow-hidden">
 
 <!-- SIDEBAR -->
-<div class="w-64 glass p-4 border-r border-gray-800">
+<div class="w-64 bg-black p-4 border-r border-gray-800">
 
-<h2 class="text-xl font-bold mb-6 text-purple-400">⚡ AIMANT AI</h2>
+<h2 class="text-xl font-bold text-purple-400 mb-6">⚡ AIMANT AI</h2>
 
 <div id="steps" class="space-y-3 text-sm">
 <div>⏳ Analyze Idea</div>
@@ -31,38 +30,40 @@
 </div>
 
 <!-- MAIN -->
-<div class="flex-1 flex flex-col p-5">
+<div class="flex-1 flex flex-col p-4">
 
-<h1 class="text-2xl mb-4">🚀 AI Build Running...</h1>
+<h1 class="text-2xl mb-4">🚀 Live AI Builder</h1>
 
 <!-- PROGRESS -->
 <div class="mb-4">
 <div class="w-full bg-gray-700 rounded h-3 overflow-hidden">
-<div id="bar" class="bg-purple-600 h-3 rounded transition-all duration-500 w-0"></div>
+<div id="bar" class="bg-purple-600 h-3 w-0 transition-all duration-500 glow"></div>
 </div>
-<p id="step" class="mt-2 text-xs text-gray-400">Starting...</p>
+<p id="status" class="text-xs text-gray-400 mt-1">Starting...</p>
 </div>
 
 <!-- LOGS -->
-<div id="logs" class="bg-black/50 p-3 h-32 overflow-auto rounded mb-4 text-xs">
-Starting build...
+<div id="logs" class="bg-black/60 p-3 h-32 overflow-auto text-xs rounded mb-4">
+Waiting...
 </div>
 
 <!-- TABS -->
 <div class="flex gap-2 mb-2">
 <button onclick="show('frontend')" class="bg-blue-600 px-3 py-1 rounded">Frontend</button>
 <button onclick="show('backend')" class="bg-green-600 px-3 py-1 rounded">Backend</button>
-<button onclick="show('deploy')" class="bg-yellow-600 px-3 py-1 rounded">Deploy</button>
+<button onclick="show('monetization')" class="bg-yellow-600 px-3 py-1 rounded">Money</button>
 </div>
 
 <!-- CODE VIEW -->
-<pre id="code" class="bg-black/60 p-3 flex-1 overflow-auto rounded text-xs"></pre>
+<textarea id="code" class="w-full flex-1 bg-black p-3 text-xs rounded resize-none"></textarea>
 
 <!-- ACTION -->
 <div class="mt-3 flex gap-3">
-<button onclick="download()" class="bg-purple-600 px-4 py-2 rounded hover:bg-purple-700">Download</button>
-<button onclick="publish()" class="bg-green-600 px-4 py-2 rounded hover:bg-green-700">Publish</button>
+<button onclick="download()" class="bg-purple-600 px-4 py-2 rounded">Download</button>
+<button onclick="deploy()" class="bg-green-600 px-4 py-2 rounded">Deploy</button>
 </div>
+
+<p id="live" class="mt-2 text-green-400"></p>
 
 </div>
 
@@ -71,22 +72,14 @@ Starting build...
 let build_id = localStorage.getItem("build_id")
 let current = {}
 
-if(!build_id){
-    alert("No build found")
-}
-
-function updateProgress(step){
-    let steps = ["analyzing","features","backend","frontend","deploy","done"]
+function updateUI(step){
+    let steps = ["start","features","backend","frontend","deploy","done"]
     let index = steps.indexOf(step)
 
-    if(index === -1) return
+    let percent = ((index+1)/steps.length)*100
+    document.getElementById("bar").style.width = percent+"%"
+    document.getElementById("status").innerText = step
 
-    let percent = ((index+1) / steps.length) * 100
-
-    document.getElementById("bar").style.width = percent + "%"
-    document.getElementById("step").innerText = "Step: " + step
-
-    // sidebar update
     let labels = [
         "Analyze Idea",
         "Generate Features",
@@ -95,69 +88,61 @@ function updateProgress(step){
         "Deploy"
     ]
 
-    let html = ""
-
-    labels.forEach((label, i)=>{
-        if(i <= index){
-            html += `<div>✅ ${label}</div>`
-        } else {
-            html += `<div>⏳ ${label}</div>`
-        }
+    let html=""
+    labels.forEach((l,i)=>{
+        if(i<=index) html+=`<div>✅ ${l}</div>`
+        else html+=`<div>⏳ ${l}</div>`
     })
 
     document.getElementById("steps").innerHTML = html
 }
 
 async function fetchStatus(){
-    try{
-        let res = await fetch("/build-status/" + build_id)
-        let data = await res.json()
+    let res = await fetch("/build-status/"+build_id)
+    let d = await res.json()
 
-        if(data.error){
-            document.getElementById("logs").innerText = data.error
-            return
-        }
+    current = d.data || {}
 
-        current = data.data || {}
+    updateUI(d.status || "start")
 
-        updateProgress(data.step)
+    document.getElementById("logs").innerHTML =
+        (d.logs||[]).join("<br>")
 
-        // logs update
-        let logs = data.logs || []
-        document.getElementById("logs").innerHTML =
-            logs.map(l => "• " + l).join("<br>")
-
-        // auto show frontend after complete
-        if(data.status === "completed"){
-            document.getElementById("step").innerText = "✅ Build Completed"
-            document.getElementById("code").innerText = current.frontend || ""
-        }
-
-        setTimeout(fetchStatus, 2000)
-
-    }catch(e){
-        document.getElementById("logs").innerText = "Server error..."
+    if(d.status=="done"){
+        document.getElementById("status").innerText="✅ Completed"
+        document.getElementById("code").value = current.frontend || ""
+    } else {
+        setTimeout(fetchStatus,2000)
     }
 }
 
 function show(type){
-    document.getElementById("code").innerText = current[type] || "No data"
+    document.getElementById("code").value = current[type] || ""
 }
 
 function download(){
-    window.open("/download/" + build_id)
+    window.open("/download/"+build_id)
 }
 
-async function publish(){
-    let res = await fetch("/publish?build_id=" + build_id, {method:"POST"})
-    let data = await res.json()
-    alert("🚀 Live: " + data.url)
+async function deploy(){
+    await fetch("/deploy/"+build_id,{method:"POST"})
+    checkDeploy()
 }
 
-// start polling
+async function checkDeploy(){
+    let res = await fetch("/deploy-status/"+build_id)
+    let d = await res.json()
+
+    if(d.url){
+        document.getElementById("live").innerText = "🌍 "+d.url
+    } else {
+        setTimeout(checkDeploy,2000)
+    }
+}
+
 fetchStatus()
 
 </script>
 
 </body>
-</html>	
+</html>
