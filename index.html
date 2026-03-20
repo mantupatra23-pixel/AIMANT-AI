@@ -4,67 +4,97 @@
 <title>AIMANT AI</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+.glass{
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(15px);
+    border:1px solid rgba(255,255,255,0.1);
+}
+</style>
+
 </head>
 
-<body class="bg-black text-white flex flex-col h-screen">
+<body class="bg-gradient-to-br from-black via-gray-900 to-black text-white h-screen flex">
 
-<!-- HEADER -->
-<div class="flex justify-between items-center p-4 bg-gray-900 border-b border-gray-800">
-<h1 class="text-xl font-bold text-green-400">🚀 AIMANT AI</h1>
-<button onclick="loadStats()" class="text-sm bg-gray-700 px-3 py-1 rounded">Stats</button>
+<!-- SIDEBAR -->
+<div class="w-20 md:w-60 glass p-3 flex flex-col justify-between">
+
+<div>
+<h1 class="text-green-400 font-bold text-lg mb-5 hidden md:block">🚀 AIMANT AI</h1>
+
+<button onclick="showTab('chat')" class="w-full mb-2 p-2 bg-gray-800 rounded">💬</button>
+<button onclick="showTab('builder')" class="w-full mb-2 p-2 bg-gray-800 rounded">⚙️</button>
+<button onclick="loadStats()" class="w-full mb-2 p-2 bg-gray-800 rounded">📊</button>
+</div>
+
+<div class="text-xs text-gray-400 hidden md:block">
+Powered by AIMANT
+</div>
+
 </div>
 
 <!-- MAIN -->
-<div class="flex flex-1 overflow-hidden">
+<div class="flex-1 flex flex-col">
 
-<!-- LEFT: CHAT -->
-<div class="w-1/2 flex flex-col border-r border-gray-800">
+<!-- HEADER -->
+<div class="glass p-3 flex justify-between">
+<h2 class="text-green-400 font-semibold">AI SaaS Builder</h2>
+<div id="userInfo">Credits: ...</div>
+</div>
 
-<div id="chat" class="flex-1 overflow-auto p-3 space-y-2"></div>
+<!-- CONTENT -->
+<div class="flex-1 overflow-hidden flex">
 
-<div class="p-3 flex gap-2">
-<input id="msg" class="flex-1 p-2 text-black rounded" placeholder="Chat or ask coding...">
-<button onclick="sendChat()" class="bg-green-500 px-3 rounded">Send</button>
+<!-- CHAT -->
+<div id="chatTab" class="flex-1 flex flex-col">
+
+<div id="chat" class="flex-1 overflow-auto p-4 space-y-2"></div>
+
+<div class="p-3 flex gap-2 glass">
+<input id="msg" class="flex-1 p-2 text-black rounded" placeholder="Ask anything...">
+<button onclick="sendChat()" class="bg-green-500 px-4 rounded">Send</button>
 </div>
 
 </div>
 
-<!-- RIGHT: BUILDER -->
-<div class="w-1/2 flex flex-col">
+<!-- BUILDER -->
+<div id="builderTab" class="hidden flex-1 flex flex-col">
 
-<div class="p-3 border-b border-gray-800">
-<textarea id="idea" class="w-full p-2 text-black rounded"
-placeholder="Enter project idea..."></textarea>
+<div class="p-4 glass">
+<textarea id="idea" class="w-full p-3 text-black rounded"
+placeholder="Enter your SaaS idea..."></textarea>
 
-<div class="flex gap-2 mt-2">
-<button onclick="generate()" class="bg-blue-500 px-3 py-2 rounded">Generate</button>
-<button onclick="download()" class="bg-purple-500 px-3 py-2 rounded">Download</button>
+<div class="flex gap-2 mt-3">
+<button onclick="generate()" class="bg-blue-500 px-4 py-2 rounded">Generate</button>
+<button onclick="download()" class="bg-purple-500 px-4 py-2 rounded">Download</button>
+<button onclick="clearOutput()" class="bg-red-500 px-4 py-2 rounded">Clear</button>
 </div>
 </div>
 
-<!-- TABS -->
-<div class="flex flex-wrap gap-2 p-2">
+<div class="flex gap-2 flex-wrap p-2">
 <button onclick="tab('planner')" class="tabBtn">Planner</button>
 <button onclick="tab('backend')" class="tabBtn">Backend</button>
 <button onclick="tab('frontend')" class="tabBtn">Frontend</button>
 <button onclick="tab('database')" class="tabBtn">Database</button>
 <button onclick="tab('deploy')" class="tabBtn">Deploy</button>
-<button onclick="tab('bugfix')" class="tabBtn">Bug Fix</button>
+<button onclick="tab('bugfix')" class="tabBtn">BugFix</button>
 <button onclick="tab('optimize')" class="tabBtn">Optimize</button>
 <button onclick="tab('business')" class="tabBtn">Business</button>
 <button onclick="tab('final')" class="tabBtn bg-purple-600">Final</button>
 </div>
 
-<!-- OUTPUT -->
-<pre id="output" class="flex-1 bg-gray-900 p-3 overflow-auto text-green-400"></pre>
+<pre id="output" class="flex-1 p-4 bg-black/70 overflow-auto text-green-400 text-sm"></pre>
 
 </div>
 
 </div>
 
-<!-- MODAL STATS -->
+</div>
+
+<!-- STATS MODAL -->
 <div id="statsModal" class="hidden fixed inset-0 bg-black/80 flex justify-center items-center">
-<div class="bg-gray-900 p-6 rounded-xl w-80">
+<div class="glass p-6 rounded-xl w-80">
 <h2 class="text-lg mb-3">📊 Analytics</h2>
 <pre id="stats"></pre>
 <button onclick="closeStats()" class="mt-3 bg-red-500 px-3 py-1 rounded">Close</button>
@@ -75,7 +105,7 @@ placeholder="Enter project idea..."></textarea>
 <style>
 .tabBtn{
     background:#1f2937;
-    padding:5px 10px;
+    padding:6px 10px;
     border-radius:6px;
     font-size:12px;
 }
@@ -88,72 +118,88 @@ placeholder="Enter project idea..."></textarea>
 <script>
 let data = {}
 
+function showTab(tab){
+document.getElementById("chatTab").classList.add("hidden")
+document.getElementById("builderTab").classList.add("hidden")
+
+if(tab=="chat") document.getElementById("chatTab").classList.remove("hidden")
+if(tab=="builder") document.getElementById("builderTab").classList.remove("hidden")
+}
+
 async function generate(){
-    let idea = document.getElementById("idea").value
-    if(!idea){ alert("Enter idea"); return }
+let idea = document.getElementById("idea").value
+if(!idea){ alert("Enter idea"); return }
 
-    let res = await fetch("/generate",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({idea})
-    })
+let res = await fetch("/generate",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body: JSON.stringify({idea})
+})
 
-    data = await res.json()
+data = await res.json()
 
-    if(data.error){
-        alert(data.error)
-        return
-    }
+if(data.error){ alert(data.error); return }
 
-    tab("planner")
+tab("planner")
+loadUser()
 }
 
 function tab(t){
-    document.getElementById("output").innerText = data[t] || "No data"
+document.getElementById("output").innerText = data[t] || "No data"
+}
+
+function clearOutput(){
+document.getElementById("output").innerText = ""
 }
 
 async function sendChat(){
-    let m = msg.value
-    if(!m) return
+let m = msg.value
+if(!m) return
 
-    chat.innerHTML += `<div class="text-green-400">You: ${m}</div>`
+chat.innerHTML += `<div class="text-green-400">You: ${m}</div>`
 
-    let res = await fetch("/chat",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({message:m})
-    })
+let res = await fetch("/chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body: JSON.stringify({message:m})
+})
 
-    let d = await res.json()
+let d = await res.json()
 
-    if(d.error){
-        alert(d.error)
-        return
-    }
+if(d.error){ alert(d.error); return }
 
-    chat.innerHTML += `<div class="text-blue-400">AI: ${d.reply}</div>`
-    msg.value=""
-    chat.scrollTop = chat.scrollHeight
+chat.innerHTML += `<div class="text-blue-400">AI: ${d.reply}</div>`
+msg.value=""
+chat.scrollTop = chat.scrollHeight
+loadUser()
 }
 
 function download(){
-    let blob = new Blob([data.final], {type:"text/plain"})
-    let a = document.createElement("a")
-    a.href = URL.createObjectURL(blob)
-    a.download = "project.txt"
-    a.click()
+let blob = new Blob([data.final],{type:"text/plain"})
+let a=document.createElement("a")
+a.href=URL.createObjectURL(blob)
+a.download="project.txt"
+a.click()
 }
 
 async function loadStats(){
-    let r = await fetch("/stats")
-    let d = await r.json()
-    stats.innerText = JSON.stringify(d,null,2)
-    statsModal.classList.remove("hidden")
+let r = await fetch("/stats")
+let d = await r.json()
+stats.innerText = JSON.stringify(d,null,2)
+statsModal.classList.remove("hidden")
 }
 
 function closeStats(){
-    statsModal.classList.add("hidden")
+statsModal.classList.add("hidden")
 }
+
+async function loadUser(){
+let r = await fetch("/user")
+let d = await r.json()
+userInfo.innerText = "Credits: " + d.credits
+}
+
+loadUser()
 </script>
 
 </body>
