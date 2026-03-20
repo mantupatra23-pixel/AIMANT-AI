@@ -1,18 +1,12 @@
-from fastapi.responses import FileResponse
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import requests, os, time
 
 app = FastAPI()
 
-# ===== STATIC FILE SERVE =====
-@app.get("/")
-def home():
-    return FileResponse("index.html")
-
-# ===== CORS =====
+# ===== CORS (IMPORTANT) =====
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,50 +15,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ===== ENV =====
+# ===== CONFIG =====
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# ===== SYSTEM PROMPT =====
-SYSTEM_PROMPT = """
-You are an elite AI software development agency.
+# ===== STORAGE =====
+credits = {"default": 20}
+stats = {"users": 1, "requests": 0, "projects": 0}
+projects = []
 
-Generate COMPLETE production-ready code.
-
-Include:
-- Backend API
-- Frontend UI
-- Database schema
-- Deployment steps
-
-Also:
-- Fix bugs automatically
-- Optimize code
-- Suggest monetization
-
-Return clean structured output.
-"""
-
-# ===== MODELS =====
+# ===== DATA MODEL =====
 class Data(BaseModel):
     idea: str
 
-class ChatData(BaseModel):
-    message: str
-
-# ===== STORAGE =====
-history = []
-memory = {}
-projects = []
-credits = {"default": 10}
-stats = {
-    "users": 1,
-    "requests": 0,
-    "projects": 0
-}
-
-# ===== GROQ CALL =====
-import time
-
+# ===== GROQ CALL (SAFE + RETRY) =====
 def call_groq(messages):
     for i in range(3):
         try:
@@ -83,137 +46,91 @@ def call_groq(messages):
             )
 
             data = res.json()
+            print("GROQ:", data)
 
+            # ❌ API error
             if "error" in data:
                 if "rate_limit" in str(data):
                     time.sleep(2)
                     continue
                 return f"AI Error: {data['error']['message']}"
 
+            # ❌ invalid response
+            if "choices" not in data:
+                return f"AI Error: Invalid response {data}"
+
             return data["choices"][0]["message"]["content"]
 
         except Exception as e:
-            return f"Error: {str(e)}"
+            return f"Server Error: {str(e)}"
 
     return "AI busy, try again 🚀"
 
-# ===== GENERATE (MULTI-AGENT) =====
+# ===== MAIN GENERATE =====
 @app.post("/generate")
 def generate(d: Data):
-
     user = "default"
 
-    # credits check
     if credits.get(user, 0) <= 0:
-        return {"error": "No credits 🔒 Upgrade required"}
+        return {"error": "No credits"}
 
     credits[user] -= 1
     stats["requests"] += 1
 
-    # ===== IDEA IMPROVE =====
+    idea = d.idea
+
+    # STEP 1: IDEA IMPROVE
     improved = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"Improve this idea professionally: {d.idea}"}
+        {"role": "system", "content": "Improve this SaaS idea and make it profitable"},
+        {"role": "user", "content": idea}
     ])
 
-    memory[user] = improved
-
-    # ===== MULTI AGENTS =====
-    planner = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"Analyze project deeply: {improved}"}
+    # STEP 2: FEATURES
+    features = call_groq([
+        {"role": "system", "content": "Generate features list"},
+        {"role": "user", "content": improved}
     ])
 
+    # STEP 3: BACKEND
     backend = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"Generate backend API: {planner}"}
+        {"role": "system", "content": "Generate backend using FastAPI"},
+        {"role": "user", "content": features}
     ])
 
+    # STEP 4: FRONTEND
     frontend = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"Generate frontend UI: {planner}"}
+        {"role": "system", "content": "Generate modern HTML CSS JS UI"},
+        {"role": "user", "content": features}
     ])
 
-    database = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"Design database schema: {planner}"}
-    ])
-
+    # STEP 5: DEPLOY
     deploy = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"AWS deployment steps: {planner}"}
+        {"role": "system", "content": "Explain deployment on Render"},
+        {"role": "user", "content": backend}
     ])
 
-    bugfix = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"Fix all bugs in: {backend} {frontend}"}
-    ])
-
-    optimize = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"Optimize performance: {bugfix}"}
-    ])
-
-    business = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"How to monetize this project: {improved}"}
-    ])
-
-    final = call_groq([
-        {"role":"system","content":SYSTEM_PROMPT},
-        {"role":"user","content":f"Combine everything cleanly: {optimize}"}
-    ])
-
-    result = {
-        "planner": planner,
-        "backend": backend,
-        "frontend": frontend,
-        "database": database,
-        "deploy": deploy,
-        "bugfix": bugfix,
-        "optimize": optimize,
-        "business": business,
-        "final": final
-    }
-
-    # ===== SAVE PROJECT =====
+    # SAVE PROJECT
     projects.append({
-        "user": user,
         "idea": improved,
         "time": time.time()
     })
 
     stats["projects"] += 1
 
-    return result
+    return {
+        "idea": improved,
+        "features": features,
+        "backend": backend,
+        "frontend": frontend,
+        "deploy": deploy
+    }
 
-# ===== CHAT SYSTEM =====
-@app.post("/chat")
-def chat(d: ChatData):
-
-    user = "default"
-
-    if credits.get(user, 0) <= 0:
-        return {"error":"No credits 🔒"}
-
-    credits[user] -= 1
-
-    history.append({"role":"user","content":d.message})
-
-    reply = call_groq(
-        [{"role":"system","content":SYSTEM_PROMPT}] + history
-    )
-
-    history.append({"role":"assistant","content":reply})
-
-    return {"reply": reply}
-
-# ===== ANALYTICS =====
+# ===== STATS =====
 @app.get("/stats")
 def stats_api():
     return stats
 
-# ===== PROJECT HISTORY =====
+# ===== PROJECTS =====
 @app.get("/projects")
 def project_api():
     return projects
@@ -226,8 +143,12 @@ def user_info():
         "projects": len(projects)
     }
 
-# ===== RUN SERVER (LOCAL SAFE) =====
-import uvicorn
+# ===== UI ROUTE =====
+@app.get("/")
+def home():
+    return FileResponse("index.html")
 
+# ===== LOCAL RUN =====
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=10000)
