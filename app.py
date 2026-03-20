@@ -1,3 +1,4 @@
+from fastapi.responses import FileResponse
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -181,3 +182,7 @@ def get_projects():
 @app.get("/")
 def home():
     return {"msg": "AIMANT AI Running 🚀"}
+
+@app.get("/ui")
+def ui():
+    return FileResponse("index.html")
