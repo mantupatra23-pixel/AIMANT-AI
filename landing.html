@@ -4,101 +4,129 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIMANT AI</title>
 
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <style>
 body{
-    margin:0;
-    font-family:sans-serif;
-    background:linear-gradient(135deg,#020617,#0f172a);
-    color:white;
-    text-align:center;
+    background: linear-gradient(135deg,#020617,#0f172a,#020617);
 }
-
-.hero{
-    padding:60px 20px;
-}
-
-button{
-    padding:14px 20px;
-    border:none;
-    border-radius:10px;
-    font-size:16px;
-    cursor:pointer;
-}
-
-.start{
-    background:linear-gradient(45deg,#6366f1,#8b5cf6);
-    color:white;
-}
-
-.pricing{
-    display:flex;
-    gap:15px;
-    padding:20px;
-}
-
-.card{
-    flex:1;
-    background:rgba(255,255,255,0.05);
-    padding:20px;
-    border-radius:12px;
-}
-
-.buy{
-    background:#22c55e;
-    color:white;
+.glass{
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px);
 }
 </style>
+
 </head>
 
-<body>
+<body class="text-white">
 
-<div class="hero">
-    <h1>🚀 Build Your SaaS in Seconds</h1>
-    <p>Create full apps with AI (Frontend + Backend + Deploy)</p>
-    <button class="start" onclick="go()">Start Building</button>
+<!-- HERO -->
+<div class="text-center py-20 px-4">
+    <h1 class="text-5xl font-bold mb-4">🚀 AIMANT AI</h1>
+    <p class="text-gray-400 mb-6">Build full SaaS apps with AI (Frontend + Backend + Deploy)</p>
+
+    <button onclick="go()" class="bg-purple-600 px-8 py-3 rounded-xl hover:scale-105 transition">
+        Start Building
+    </button>
 </div>
 
-<div class="pricing">
+<!-- PRICING -->
+<div class="grid md:grid-cols-3 gap-6 px-6 pb-20">
 
-<div class="card">
-    <h3>Free</h3>
-    <p>5 credits</p>
-    <button class="buy" onclick="buy(0)">Start</button>
-</div>
+    <!-- FREE -->
+    <div class="glass p-6 rounded-xl text-center border border-gray-700">
+        <h2 class="text-xl font-bold mb-2">Free</h2>
+        <p class="text-gray-400 mb-4">5 Credits</p>
+        <button onclick="go()" class="bg-gray-700 px-4 py-2 rounded">
+            Get Started
+        </button>
+    </div>
 
-<div class="card">
-    <h3>Pro</h3>
-    <p>₹99 → 50 credits</p>
-    <button class="buy" onclick="buy(99)">Buy</button>
-</div>
+    <!-- PRO -->
+    <div class="glass p-6 rounded-xl text-center border border-purple-500 scale-105">
+        <h2 class="text-xl font-bold mb-2">Pro</h2>
+        <p class="text-gray-400 mb-4">₹99 → 50 Credits</p>
+        <button onclick="buy(99)" class="bg-purple-600 px-4 py-2 rounded hover:scale-105 transition">
+            Buy Now
+        </button>
+    </div>
 
-<div class="card">
-    <h3>Premium</h3>
-    <p>₹299 → 200 credits</p>
-    <button class="buy" onclick="buy(299)">Buy</button>
-</div>
+    <!-- PREMIUM -->
+    <div class="glass p-6 rounded-xl text-center border border-green-500">
+        <h2 class="text-xl font-bold mb-2">Premium</h2>
+        <p class="text-gray-400 mb-4">₹299 → 200 Credits</p>
+        <button onclick="buy(299)" class="bg-green-600 px-4 py-2 rounded hover:scale-105 transition">
+            Buy Now
+        </button>
+    </div>
 
 </div>
 
 <script>
 
+// redirect
 function go(){
-    location.href="/";
+    window.location.href = "/"
 }
 
-function buy(amount){
-    fetch("/pay",{
+// BUY FUNCTION (FINAL FIXED)
+async function buy(amount){
+
+    let res = await fetch("/create-order",{
         method:"POST",
         headers:{
             "Content-Type":"application/json",
-            "Authorization":localStorage.getItem("token")
+            "Authorization": localStorage.getItem("token")
         },
         body:JSON.stringify({amount})
     })
-    .then(r=>r.json())
-    .then(d=>{
-        alert("Payment Success");
-    });
+
+    let order = await res.json()
+
+    var options = {
+        "key": "YOUR_RAZORPAY_KEY",  // 🔥 change this
+        "amount": order.amount,
+        "currency": "INR",
+        "order_id": order.id,
+
+        "name": "AIMANT AI",
+        "description": "Upgrade Plan",
+
+        // ✅ IMPORTANT FIX
+        "notes": {
+            "email": localStorage.getItem("user") || "guest"
+        },
+
+        "handler": async function (response){
+
+            let verify = await fetch("/verify-payment",{
+                method:"POST",
+                headers:{
+                    "Content-Type":"application/json",
+                    "Authorization": localStorage.getItem("token")
+                },
+                body:JSON.stringify({
+                    order_id:response.razorpay_order_id,
+                    payment_id:response.razorpay_payment_id,
+                    signature:response.razorpay_signature,
+                    amount:amount
+                })
+            })
+
+            let data = await verify.json()
+
+            if(data.msg){
+                alert("✅ Payment Success")
+                location.reload()
+            }else{
+                alert("❌ Payment Failed")
+            }
+        }
+    }
+
+    var rzp = new Razorpay(options)
+    rzp.open()
 }
 
 </script>

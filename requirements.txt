@@ -1,4 +1,8 @@
 fastapi
+passlib[bcrypt]
+razorpay
+sqlalchemy
+psycopg2-binary
 uvicorn
 requests
 pydantic
