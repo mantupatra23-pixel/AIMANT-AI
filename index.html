@@ -1,178 +1,152 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AIMANT AI SaaS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.tailwindcss.com"></script>
+<title>AIMANT AI Dashboard</title>
+
+<style>
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:linear-gradient(135deg,#0f172a,#020617);
+    color:white;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    padding:15px;
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(10px);
+}
+
+.container{
+    padding:20px;
+}
+
+.card{
+    background:rgba(255,255,255,0.05);
+    padding:15px;
+    border-radius:12px;
+    margin-top:15px;
+}
+
+button{
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.build{
+    background:linear-gradient(45deg,#6366f1,#8b5cf6);
+    color:white;
+}
+
+.logout{
+    background:red;
+    color:white;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#111827;
+    color:white;
+}
+
+.stats{
+    display:flex;
+    gap:10px;
+}
+
+.stat{
+    flex:1;
+    background:#111827;
+    padding:10px;
+    border-radius:10px;
+    text-align:center;
+}
+</style>
 </head>
 
-<body class="bg-gray-900 text-white">
+<body>
 
-<!-- LOGIN -->
-<div id="auth" class="flex items-center justify-center h-screen">
-<div class="bg-gray-800 p-6 rounded w-80">
-<h2 class="text-xl mb-4">🔐 AIMANT AI</h2>
-
-<input id="email" placeholder="Email" class="w-full p-2 mb-2 text-black">
-<input id="pass" type="password" placeholder="Password" class="w-full p-2 mb-3 text-black">
-
-<button onclick="signup()" class="bg-green-500 w-full p-2 mb-2">Signup</button>
-<button onclick="login()" class="bg-blue-500 w-full p-2">Login</button>
-</div>
+<div class="header">
+    <h3>🚀 AIMANT AI</h3>
+    <button class="logout" onclick="logout()">Logout</button>
 </div>
 
-<!-- DASHBOARD -->
-<div id="app" class="hidden p-4">
+<div class="container">
 
-<h1 class="text-2xl mb-4">🚀 AIMANT AI Dashboard</h1>
-
-<div class="flex gap-4 mb-4">
-<div class="bg-gray-800 p-3 rounded">Credits: <span id="credits"></span></div>
-<button onclick="logout()" class="bg-red-500 px-3">Logout</button>
+<div class="stats">
+    <div class="stat">Credits: <span id="credits">0</span></div>
+    <div class="stat">Projects: <span id="projects">0</span></div>
 </div>
 
-<textarea id="idea" placeholder="Enter SaaS idea..." class="w-full p-3 text-black"></textarea>
-
-<button onclick="build()" class="bg-purple-600 px-4 py-2 mt-2">Build</button>
-
-<!-- PROGRESS -->
-<div class="mt-4">
-<div class="bg-gray-700 h-3 rounded">
-<div id="bar" class="bg-green-500 h-3 w-0"></div>
-</div>
-<p id="status" class="text-sm mt-1"></p>
+<div class="card">
+    <h3>💡 Build SaaS</h3>
+    <input id="idea" placeholder="Enter your SaaS idea...">
+    <br><br>
+    <button class="build" onclick="build()">🚀 Build Now</button>
 </div>
 
-<!-- LOGS -->
-<div id="logs" class="bg-black p-3 h-40 overflow-auto mt-4 text-xs"></div>
-
-<!-- OUTPUT -->
-<div class="mt-4">
-<button onclick="show('frontend')" class="bg-blue-500 px-2">Frontend</button>
-<button onclick="show('backend')" class="bg-green-500 px-2">Backend</button>
+<div class="card">
+    <h3>📂 Your Projects</h3>
+    <div id="list"></div>
 </div>
-
-<pre id="code" class="bg-black p-3 mt-2 h-60 overflow-auto text-xs"></pre>
-
-<!-- ACTION -->
-<div class="mt-3 flex gap-2">
-<button onclick="download()" class="bg-purple-600 px-3">Download</button>
-<button onclick="deploy()" class="bg-green-600 px-3">Deploy</button>
-</div>
-
-<p id="live" class="mt-2 text-green-400"></p>
 
 </div>
 
 <script>
 
-let token = localStorage.getItem("token")
-let build_id = null
-let current = {}
-
-if(token) loadDashboard()
-
-async function signup(){
-    let res = await fetch("/signup",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            email:email.value,
-            password:pass.value
-        })
-    })
-    let d = await res.json()
-    token = d.token
-    localStorage.setItem("token",token)
-    loadDashboard()
-}
-
-async function login(){
-    let res = await fetch("/login",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-            email:email.value,
-            password:pass.value
-        })
-    })
-    let d = await res.json()
-    token = d.token
-    localStorage.setItem("token",token)
-    loadDashboard()
-}
-
 function logout(){
-    localStorage.removeItem("token")
-    location.reload()
+    localStorage.removeItem("token");
+    location.href="/landing";
 }
 
-async function loadDashboard(){
-    auth.style.display="none"
-    app.style.display="block"
+function build(){
+    let idea = document.getElementById("idea").value;
 
-    let res = await fetch("/dashboard",{
-        headers:{Authorization:token}
-    })
-    let d = await res.json()
-    credits.innerText = d.credits
-}
-
-async function build(){
-    let res = await fetch("/start-build",{
+    fetch("/start-build",{
         method:"POST",
         headers:{
             "Content-Type":"application/json",
-            Authorization:token
+            "Authorization":localStorage.getItem("token")
         },
-        body:JSON.stringify({idea:idea.value})
+        body:JSON.stringify({idea})
     })
-    let d = await res.json()
-    build_id = d.build_id
-
-    fetchStatus()
+    .then(r=>r.json())
+    .then(d=>{
+        localStorage.setItem("build_id", d.build_id);
+        location.href="/builder";
+    });
 }
 
-async function fetchStatus(){
-    let res = await fetch("/build-status/"+build_id)
-    let d = await res.json()
+function load(){
+    fetch("/dashboard",{
+        headers:{
+            "Authorization":localStorage.getItem("token")
+        }
+    })
+    .then(r=>r.json())
+    .then(d=>{
+        document.getElementById("credits").innerText = d.credits;
+        document.getElementById("projects").innerText = d.projects.length;
 
-    current = d.data || {}
+        let html="";
+        d.projects.forEach(p=>{
+            html += `<div>${p.idea}</div>`;
+        });
 
-    logs.innerHTML = (d.logs||[]).join("<br>")
-    status.innerText = d.status
-
-    if(d.status=="done"){
-        bar.style.width="100%"
-    } else {
-        bar.style.width="50%"
-        setTimeout(fetchStatus,2000)
-    }
+        document.getElementById("list").innerHTML = html;
+    });
 }
 
-function show(type){
-    code.innerText = current[type] || ""
-}
-
-function download(){
-    window.open("/download/"+build_id)
-}
-
-async function deploy(){
-    await fetch("/deploy/"+build_id,{method:"POST"})
-    checkDeploy()
-}
-
-async function checkDeploy(){
-    let res = await fetch("/deploy-status/"+build_id)
-    let d = await res.json()
-
-    if(d.url){
-        live.innerText = "🌍 " + d.url
-    } else {
-        setTimeout(checkDeploy,2000)
-    }
-}
+load();
 
 </script>
 

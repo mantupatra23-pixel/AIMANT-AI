@@ -2,7 +2,7 @@ from fastapi import FastAPI, Header
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import requests, os, time, uuid, jwt
+import requests, time, uuid, jwt, os
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
 
@@ -291,13 +291,13 @@ def home():
 def builder():
     return FileResponse("builder.html")
 
-@app.get("/admin")
-def admin_ui():
-    return FileResponse("admin.html")
-
 @app.get("/landing")
 def landing():
     return FileResponse("landing.html")
+
+@app.get("/admin")
+def admin_page():
+    return FileResponse("admin.html")
 
 # ===== RUN =====
 if __name__ == "__main__":
