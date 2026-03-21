@@ -1,23 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aimant AI</title>
-
 <style>
-body {
-  font-family: Arial;
-  text-align: center;
-  background: #fff;
-}
+body { font-family: Arial; text-align: center; }
 
-/* NAV */
 .navbar {
   display: flex;
   justify-content: space-between;
   padding: 20px;
 }
+
 .btn {
   padding: 10px 20px;
   background: black;
@@ -25,113 +18,21 @@ body {
   border: none;
   cursor: pointer;
 }
-
-/* HERO */
-.hero {
-  padding: 40px;
-}
-
-input {
-  padding: 12px;
-  margin: 5px;
-  width: 250px;
-}
-
-/* BOX */
-.box {
-  margin-top: 30px;
-}
 </style>
 </head>
 
 <body>
 
-<!-- NAV -->
 <div class="navbar">
   <h2>Aimant AI</h2>
+  <div>
+    <button class="btn" onclick="window.location='/login-page'">Login</button>
+    <button class="btn" onclick="window.location='/signup-page'">Signup</button>
+  </div>
 </div>
 
-<!-- HERO -->
-<div class="hero">
-  <h1>Build AI Apps in Seconds</h1>
-</div>
-
-<!-- SIGNUP -->
-<div class="box">
-  <h3>Signup</h3>
-  <input id="signup_email" placeholder="Email"><br>
-  <input id="signup_password" type="password" placeholder="Password"><br>
-  <button class="btn" onclick="signup()">Signup</button>
-</div>
-
-<!-- LOGIN -->
-<div class="box">
-  <h3>Login</h3>
-  <input id="login_email" placeholder="Email"><br>
-  <input id="login_password" type="password" placeholder="Password"><br>
-  <button class="btn" onclick="login()">Login</button>
-</div>
-
-<!-- BUILD -->
-<div class="box">
-  <h3>Build</h3>
-  <input id="idea" placeholder="Enter idea"><br>
-  <button class="btn" onclick="build()">Generate</button>
-</div>
-
-<script>
-
-// SIGNUP
-async function signup() {
-  const res = await fetch("/signup", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      email: document.getElementById("signup_email").value,
-      password: document.getElementById("signup_password").value
-    })
-  });
-
-  const data = await res.json();
-  alert(data.msg || data.error);
-}
-
-// LOGIN
-async function login() {
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      email: document.getElementById("login_email").value,
-      password: document.getElementById("login_password").value
-    })
-  });
-
-  const data = await res.json();
-
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-    alert("Login success 🔥");
-  } else {
-    alert(data.error);
-  }
-}
-
-// BUILD
-async function build() {
-  const res = await fetch("/build", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      idea: document.getElementById("idea").value
-    })
-  });
-
-  const data = await res.json();
-  alert("Build ID: " + data.build_id);
-}
-
-</script>
+<h1>Build AI Apps in Seconds</h1>
+<p>Just enter your idea and get full website + backend + deploy</p>
 
 </body>
 </html>

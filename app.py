@@ -967,6 +967,14 @@ def analytics_page():
 def admin_page():
     return FileResponse("admin.html")
 
+@app.get("/login-page", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/signup-page", response_class=HTMLResponse)
+def signup_page(request: Request):
+    return templates.TemplateResponse("signup.html", {"request": request})
+
 # ===== RUN =====
 if __name__ == "__main__":
     import uvicorn
