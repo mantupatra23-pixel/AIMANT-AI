@@ -5,7 +5,6 @@ from pydantic import BaseModel
 import requests, time, uuid, jwt, os
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
-from sqlalchemy.orm import Session
 from db import engine
 from models import User
 from fastapi import Depends
@@ -31,9 +30,6 @@ def verify_password(password, hashed):
 
 # ===== DATABASE =====
 DATABASE_URL = "postgresql://user:pass@host/db"
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
 
 Base = declarative_base()
 
