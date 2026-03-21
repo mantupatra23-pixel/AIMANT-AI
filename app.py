@@ -6,6 +6,7 @@ import requests, time, uuid, jwt, os
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
 from db import engine
+from db import Base
 from models import User
 from fastapi import Depends
 from sqlalchemy import create_engine
@@ -30,8 +31,6 @@ def verify_password(password, hashed):
 
 # ===== DATABASE =====
 DATABASE_URL = "postgresql://user:pass@host/db"
-
-Base = declarative_base()
 
 # 👇 YAHI ADD KAR
 Base.metadata.create_all(bind=engine)
