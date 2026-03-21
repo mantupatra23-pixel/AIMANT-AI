@@ -453,28 +453,21 @@ def update_daily():
 
 # ===== AUTH =====
 @app.post("/signup")
-def signup(user: dict, db: Session = Depends(get_db)):
+def signup(user: UserSchema, db: Session = Depends(get_db)):
 
-    email = user.get("email")
-    password = user.get("password")
-
-    if not email or not password:
-        return {"error": "Missing email or password"}
-
-    existing = db.query(User).filter(User.email == email).first()
+    existing = db.query(User).filter(User.email == user.email).first()
 
     if existing:
         return {"error": "User already exists"}
 
     new_user = User(
-        email=email,
-        password=hash_password(password),
+        email=user.email,
+        password=hash_password(user.password),
         credits=20
     )
 
     db.add(new_user)
     db.commit()
-    db.refresh(new_user)
 
     return {"msg": "Signup successful"}
 
