@@ -135,20 +135,54 @@ class User(BaseModel):
 class BuildRequest(BaseModel):
     idea: str
 
-# ===== JWT =====
-def create_token(email):
+# ===============================
+# JWT CONFIG (FINAL)
+# ===============================
+
+import jwt
+import time
+from fastapi import Header
+
+SECRET_KEY = "aimant_secret"
+ALGORITHM = "HS256"
+
+# ===============================
+# CREATE TOKEN
+# ===============================
+def create_token(email: str):
     payload = {
         "email": email,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        "exp": int(time.time()) + 86400  # 24 hours
     }
-    return jwt.encode(payload, SECRET, algorithm="HS256")
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_user(token):
+# ===============================
+# VERIFY TOKEN
+# ===============================
+def verify_token(token: str):
     try:
-        data = jwt.decode(token, SECRET, algorithms=["HS256"])
-        return data["email"]
+        data = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return data.get("email")
     except:
         return None
+
+# ===============================
+# GET CURRENT USER (HEADER)
+# ===============================
+def get_current_user(Authorization: str = Header(None)):
+
+    if not Authorization:
+        return None
+
+    # अगर "Bearer token" format है तो split करो
+    if " " in Authorization:
+        token = Authorization.split(" ")[1]
+    else:
+        token = Authorization
+
+    email = verify_token(token)
+
+    return email
 
 # ===== MEMORY =====
 memory = {}
@@ -424,9 +458,8 @@ def signup(user: dict, db: Session = Depends(get_db)):
     email = user.get("email")
     password = user.get("password")
 
-    # DEBUG
-    print("EMAIL:", email)
-    print("PASSWORD:", password)
+    if not email or not password:
+        return {"error": "Missing email or password"}
 
     existing = db.query(User).filter(User.email == email).first()
 
@@ -446,21 +479,26 @@ def signup(user: dict, db: Session = Depends(get_db)):
     return {"msg": "Signup successful"}
 
 @app.post("/login")
-def login(data: UserLogin, db: Session = Depends(get_db)):
+def login(user: dict, db: Session = Depends(get_db)):
 
-    user = db.query(User).filter(User.email == data.email).first()
+    email = user.get("email")
+    password = user.get("password")
 
-    if not user:
+    db_user = db.query(User).filter(User.email == email).first()
+
+    if not db_user:
         return {"error": "User not found"}
 
-    if not verify_password(data.password, user.password):
+    if not verify_password(password, db_user.password):
         return {"error": "Invalid password"}
+
+    token = create_token({"email": db_user.email})
 
     return {
         "msg": "Login successful",
-        "email": user.email,
-        "credits": user.credits
+        "token": token
     }
+
 
 # ===== PAYMENT APIs =====
 @app.post("/create-order")
