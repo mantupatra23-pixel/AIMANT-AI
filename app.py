@@ -7,6 +7,7 @@ from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
 from db import engine
 from db import Base
+from db import get_db
 from models import User
 from fastapi import Depends
 from sqlalchemy import create_engine
