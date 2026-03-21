@@ -421,9 +421,13 @@ def auto_deploy(bid):
 
 # ===== DAILY STATS =====
 def update_daily():
+    # increment users
+    stats["users"] += 1
+
+    # store stats snapshot
     daily_stats.append({
         "time": time.time(),
-        "users": stats["users"] += 1 ,
+        "users": stats["users"],
         "projects": stats["projects"],
         "revenue": stats["revenue"]
     })
