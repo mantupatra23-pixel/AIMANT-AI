@@ -927,13 +927,29 @@ def team_info(team: str):
 def home():
     return FileResponse("index.html")
 
+@app.get("/auth")
+def auth():
+    return FileResponse("auth.html")
+
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse("dashboard.html")
+
 @app.get("/builder")
 def builder():
     return FileResponse("builder.html")
 
-@app.get("/landing")
-def landing():
-    return FileResponse("landing.html")
+@app.get("/billing")
+def billing():
+    return FileResponse("billing.html")
+
+@app.get("/domain")
+def domain():
+    return FileResponse("domain.html")
+
+@app.get("/analytics-page")
+def analytics_page():
+    return FileResponse("analytics.html")
 
 @app.get("/admin")
 def admin_page():

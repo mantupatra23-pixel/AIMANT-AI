@@ -1,134 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIMANT AI</title>
+<title>Aimant AI</title>
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-body{
-    background: linear-gradient(135deg,#020617,#0f172a,#020617);
+body {
+    margin:0;
+    font-family:Inter;
+    background:white;
+    color:#111;
 }
-.glass{
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(12px);
+
+.nav {
+    display:flex;
+    justify-content:space-between;
+    padding:20px 50px;
+    border-bottom:1px solid #eee;
+}
+
+.hero {
+    text-align:center;
+    padding:100px 20px;
+}
+
+.hero h1 {
+    font-size:48px;
+}
+
+.hero p {
+    color:#666;
+    margin-top:10px;
+}
+
+.btn {
+    padding:12px 25px;
+    background:black;
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    margin-top:20px;
+}
+
+.features {
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    padding:60px;
+}
+
+.card {
+    border:1px solid #eee;
+    padding:25px;
+    border-radius:12px;
+    width:250px;
+    text-align:center;
+}
+
+.footer {
+    text-align:center;
+    padding:30px;
+    border-top:1px solid #eee;
+    color:#777;
 }
 </style>
-
 </head>
 
-<body class="text-white">
+<body>
 
-<!-- HERO -->
-<div class="text-center py-20 px-4">
-    <h1 class="text-5xl font-bold mb-4">🚀 AIMANT AI</h1>
-    <p class="text-gray-400 mb-6">Build full SaaS apps with AI (Frontend + Backend + Deploy)</p>
-
-    <button onclick="go()" class="bg-purple-600 px-8 py-3 rounded-xl hover:scale-105 transition">
-        Start Building
-    </button>
+<div class="nav">
+    <b>Aimant AI</b>
+    <button class="btn" onclick="go()">Dashboard</button>
 </div>
 
-<!-- PRICING -->
-<div class="grid md:grid-cols-3 gap-6 px-6 pb-20">
+<div class="hero">
+    <h1>Build AI Apps in Seconds</h1>
+    <p>No coding. No setup. Just idea → website</p>
+    <button class="btn" onclick="go()">Start Building 🚀</button>
+</div>
 
-    <!-- FREE -->
-    <div class="glass p-6 rounded-xl text-center border border-gray-700">
-        <h2 class="text-xl font-bold mb-2">Free</h2>
-        <p class="text-gray-400 mb-4">5 Credits</p>
-        <button onclick="go()" class="bg-gray-700 px-4 py-2 rounded">
-            Get Started
-        </button>
-    </div>
+<div class="features">
+    <div class="card">⚡ Instant AI Build</div>
+    <div class="card">🚀 Auto Deploy</div>
+    <div class="card">💰 SaaS Ready</div>
+</div>
 
-    <!-- PRO -->
-    <div class="glass p-6 rounded-xl text-center border border-purple-500 scale-105">
-        <h2 class="text-xl font-bold mb-2">Pro</h2>
-        <p class="text-gray-400 mb-4">₹99 → 50 Credits</p>
-        <button onclick="buy(99)" class="bg-purple-600 px-4 py-2 rounded hover:scale-105 transition">
-            Buy Now
-        </button>
-    </div>
-
-    <!-- PREMIUM -->
-    <div class="glass p-6 rounded-xl text-center border border-green-500">
-        <h2 class="text-xl font-bold mb-2">Premium</h2>
-        <p class="text-gray-400 mb-4">₹299 → 200 Credits</p>
-        <button onclick="buy(299)" class="bg-green-600 px-4 py-2 rounded hover:scale-105 transition">
-            Buy Now
-        </button>
-    </div>
-
+<div class="footer">
+    © Aimant AI 2026
 </div>
 
 <script>
-
-// redirect
 function go(){
-    window.location.href = "/"
+    window.location.href = "/dashboard.html";
 }
-
-// BUY FUNCTION (FINAL FIXED)
-async function buy(amount){
-
-    let res = await fetch("/create-order",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization": localStorage.getItem("token")
-        },
-        body:JSON.stringify({amount})
-    })
-
-    let order = await res.json()
-
-    var options = {
-        "key": "YOUR_RAZORPAY_KEY",  // 🔥 change this
-        "amount": order.amount,
-        "currency": "INR",
-        "order_id": order.id,
-
-        "name": "AIMANT AI",
-        "description": "Upgrade Plan",
-
-        // ✅ IMPORTANT FIX
-        "notes": {
-            "email": localStorage.getItem("user") || "guest"
-        },
-
-        "handler": async function (response){
-
-            let verify = await fetch("/verify-payment",{
-                method:"POST",
-                headers:{
-                    "Content-Type":"application/json",
-                    "Authorization": localStorage.getItem("token")
-                },
-                body:JSON.stringify({
-                    order_id:response.razorpay_order_id,
-                    payment_id:response.razorpay_payment_id,
-                    signature:response.razorpay_signature,
-                    amount:amount
-                })
-            })
-
-            let data = await verify.json()
-
-            if(data.msg){
-                alert("✅ Payment Success")
-                location.reload()
-            }else{
-                alert("❌ Payment Failed")
-            }
-        }
-    }
-
-    var rzp = new Razorpay(options)
-    rzp.open()
-}
-
 </script>
 
 </body>

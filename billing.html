@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Billing</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f9fafb;
+    padding: 20px;
+}
+
+.plans {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    width: 250px;
+    text-align: center;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px;
+    background: black;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>💰 Choose Plan</h2>
+
+<div class="plans" id="plansContainer">
+    <!-- Plans will come from backend -->
+</div>
+
+<script>
+
+// 🔥 Plans dynamic load (NOT FIXED)
+async function loadPlans() {
+    let res = await fetch("/get-plans");
+    let plans = await res.json();
+
+    let container = document.getElementById("plansContainer");
+    container.innerHTML = "";
+
+    plans.forEach(p => {
+        container.innerHTML += `
+            <div class="card">
+                <h3>${p.name}</h3>
+                <p>₹${p.price}</p>
+                <button onclick="buy('${p.id}')">Buy</button>
+            </div>
+        `;
+    });
+}
+
+// 🔥 BUY FUNCTION (with Authorization header)
+async function buy(plan) {
+    let res = await fetch("/create-order", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": localStorage.getItem("token")
+        },
+        body: JSON.stringify({ plan })
+    });
+
+    let data = await res.json();
+
+    if(data.order_id){
+        alert("Order Created: " + data.order_id);
+    } else {
+        alert("Error: " + data.message);
+    }
+}
+
+// page load
+loadPlans();
+
+</script>
+
+</body>
+</html>

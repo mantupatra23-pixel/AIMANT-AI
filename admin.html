@@ -1,85 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AIMANT AI Admin</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.tailwindcss.com"></script>
+<title>Admin Panel</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:#f9fafb;
+}
+
+.header{
+    background:black;
+    color:white;
+    padding:15px;
+    font-size:20px;
+}
+
+.container{
+    padding:20px;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:15px;
+    border:1px solid #eee;
+}
+
+button{
+    background:red;
+    color:white;
+    border:none;
+    padding:8px 12px;
+    border-radius:6px;
+}
+</style>
 </head>
 
-<body class="bg-gray-900 text-white p-4">
+<body>
 
-<h1 class="text-2xl mb-4 text-purple-400">⚡ ADMIN PANEL</h1>
+<div class="header">👑 Admin Panel</div>
 
-<!-- STATS -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="container">
 
-<div class="bg-gray-800 p-4 rounded">
-<p>Users</p>
-<h2 id="users" class="text-xl">0</h2>
-</div>
+    <div class="card">
+        <h3>📊 Stats</h3>
+        <div id="stats"></div>
+    </div>
 
-<div class="bg-gray-800 p-4 rounded">
-<p>Projects</p>
-<h2 id="projects" class="text-xl">0</h2>
-</div>
+    <div class="card">
+        <h3>👥 Users</h3>
+        <div id="users"></div>
+    </div>
 
-<div class="bg-gray-800 p-4 rounded">
-<p>Revenue</p>
-<h2 id="revenue" class="text-xl">0</h2>
-</div>
-
-<div class="bg-gray-800 p-4 rounded">
-<p>Active Builds</p>
-<h2 id="builds" class="text-xl">0</h2>
-</div>
-
-</div>
-
-<!-- REFRESH -->
-<button onclick="load()" class="bg-purple-600 px-4 py-2 mb-4">
-Refresh
-</button>
-
-<!-- USERS -->
-<div class="bg-gray-800 p-4 rounded mb-4">
-<h2 class="text-lg mb-2">👥 Users</h2>
-<div id="userList" class="text-sm text-gray-300"></div>
-</div>
-
-<!-- LOG -->
-<div class="bg-black p-4 rounded h-40 overflow-auto text-xs">
-System running...
 </div>
 
 <script>
+const token = localStorage.getItem("token");
 
-async function load(){
-    let res = await fetch("/dashboard-advanced")
-    let d = await res.json()
-
-    users.innerText = d.users
-    projects.innerText = d.projects
-    revenue.innerText = "₹"+d.revenue
-    builds.innerText = d.active_builds
-
-    loadUsers()
+// protect route
+if(!token){
+    window.location.href = "/auth.html";
 }
 
-async function loadUsers(){
-    let res = await fetch("/admin-users")
-    let d = await res.json()
+// load stats
+fetch("/admin/stats",{
+    headers:{Authorization:token}
+})
+.then(res=>res.json())
+.then(data=>{
+    document.getElementById("stats").innerHTML =
+        "Users: "+data.users+"<br>" +
+        "Projects: "+data.projects+"<br>" +
+        "Revenue: ₹"+data.revenue;
+});
 
-    let html = ""
+// load users
+fetch("/admin/users",{
+    headers:{Authorization:token}
+})
+.then(res=>res.json())
+.then(users=>{
+    let html="";
+    users.forEach(u=>{
+        html+=`
+        <div>
+            ${u.email} 
+            <button onclick="block('${u.email}')">Block</button>
+        </div>`;
+    });
+    document.getElementById("users").innerHTML=html;
+});
 
-    d.forEach(u=>{
-        html += `<div>📧 ${u.email} | 💰 ${u.credits}</div>`
-    })
-
-    userList.innerHTML = html
+function block(email){
+    fetch("/admin/block-user",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":token
+        },
+        body:JSON.stringify({email})
+    }).then(()=>location.reload());
 }
-
-load()
-
 </script>
 
 </body>

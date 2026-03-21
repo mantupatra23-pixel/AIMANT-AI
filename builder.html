@@ -1,229 +1,123 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIMANT AI Builder</title>
+<title>AI Builder</title>
 
 <style>
 body {
     margin:0;
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg,#0f172a,#020617);
-    color:white;
-}
-
-.header {
-    padding:15px;
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
+    font-family:Arial;
     display:flex;
-    justify-content:space-between;
-    align-items:center;
+    height:100vh;
 }
 
-.container {
-    padding:15px;
+/* LEFT PANEL */
+.left {
+    width:40%;
+    padding:20px;
+    border-right:1px solid #eee;
 }
 
-input {
+textarea {
     width:100%;
-    padding:14px;
-    border-radius:10px;
-    border:none;
-    background:#111827;
-    color:white;
-    margin-bottom:10px;
+    height:100px;
+    padding:10px;
 }
 
 button {
-    padding:12px 18px;
+    padding:10px 20px;
+    background:black;
+    color:white;
     border:none;
-    border-radius:10px;
-    cursor:pointer;
-    font-weight:bold;
-}
-
-.build-btn {
-    background:linear-gradient(45deg,#6366f1,#8b5cf6);
-    color:white;
-}
-
-.deploy-btn {
-    background:#22c55e;
-    color:white;
-}
-
-.progress {
-    height:6px;
-    background:#1e293b;
     margin-top:10px;
-    border-radius:10px;
-    overflow:hidden;
 }
 
-.progress-bar {
-    height:100%;
-    width:0%;
-    background:linear-gradient(90deg,#6366f1,#22c55e);
-    animation:move 2s infinite;
-}
-
-@keyframes move {
-    0% {width:10%}
-    50% {width:80%}
-    100% {width:10%}
-}
-
-.card {
-    background:rgba(255,255,255,0.05);
-    backdrop-filter:blur(10px);
-    padding:15px;
-    border-radius:12px;
-    margin-top:15px;
+/* RIGHT PANEL */
+.right {
+    flex:1;
+    display:flex;
+    flex-direction:column;
 }
 
 .logs {
-    height:200px;
+    height:40%;
     overflow:auto;
-    background:black;
+    border-bottom:1px solid #eee;
     padding:10px;
-    font-size:12px;
-    border-radius:10px;
+    background:#fafafa;
 }
 
-.code {
-    height:250px;
-    overflow:auto;
-    background:black;
-    padding:10px;
-    font-size:12px;
-    border-radius:10px;
+.preview {
+    flex:1;
 }
 
-.tabs button {
-    margin-right:5px;
+iframe {
+    width:100%;
+    height:100%;
+    border:none;
 }
-
-.active {
-    background:#6366f1;
-    color:white;
-}
-
 </style>
 </head>
 
 <body>
 
-<div class="header">
-    <h3>🚀 AIMANT AI Builder</h3>
-    <button onclick="logout()">Logout</button>
+<!-- LEFT -->
+<div class="left">
+    <h2>⚡ AI Builder</h2>
+
+    <textarea id="idea" placeholder="Enter your idea..."></textarea>
+
+    <button onclick="build()">Generate</button>
 </div>
 
-<div class="container">
-
-<input id="idea" placeholder="Enter your SaaS idea...">
-
-<button class="build-btn" onclick="startBuild()">Build</button>
-
-<div class="progress">
-    <div class="progress-bar" id="progress"></div>
-</div>
-
-<div class="card">
-    <h4>📡 Live Logs</h4>
-    <div id="logs" class="logs"></div>
-</div>
-
-<div class="card">
-    <div class="tabs">
-        <button onclick="showTab('frontend')" id="tab1">Frontend</button>
-        <button onclick="showTab('backend')" id="tab2">Backend</button>
+<!-- RIGHT -->
+<div class="right">
+    <div class="logs" id="logs">Logs...</div>
+    <div class="preview">
+        <iframe id="frame"></iframe>
     </div>
-
-    <div id="frontend" class="code"></div>
-    <div id="backend" class="code" style="display:none;"></div>
-</div>
-
-<button class="deploy-btn" onclick="deploy()">Deploy</button>
-
 </div>
 
 <script>
+let current_id = null;
 
-let buildId = null;
-
-function log(msg){
-    let box = document.getElementById("logs");
-    box.innerHTML += msg + "<br>";
-    box.scrollTop = box.scrollHeight;
-}
-
-function startBuild(){
+async function build(){
     let idea = document.getElementById("idea").value;
 
-    fetch("/start-build",{
+    let res = await fetch("/build", {
         method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
+        headers:{"Content-Type":"application/json"},
         body:JSON.stringify({idea})
-    })
-    .then(r=>r.json())
-    .then(d=>{
-        buildId = d.build_id;
-        log("🚀 Build started...");
-        poll();
     });
+
+    let data = await res.json();
+    current_id = data.build_id;
+
+    log("🚀 Build started: " + current_id);
+
+    check();
 }
 
-function poll(){
-    let interval = setInterval(()=>{
-        fetch(`/build-status/${buildId}`)
-        .then(r=>r.json())
-        .then(data=>{
-            if(data.logs){
-                document.getElementById("logs").innerHTML = data.logs.join("<br>");
-            }
-
-            if(data.data){
-                document.getElementById("frontend").innerText = data.data.frontend || "";
-                document.getElementById("backend").innerText = data.data.backend || "";
-            }
-
-            if(data.status === "completed"){
-                log("✅ Build Completed");
-                clearInterval(interval);
-                document.getElementById("progress").style.width = "100%";
-            }
-        });
-    },2000);
+function log(msg){
+    document.getElementById("logs").innerHTML += "<br>" + msg;
 }
 
-function showTab(type){
-    document.getElementById("frontend").style.display="none";
-    document.getElementById("backend").style.display="none";
+async function check(){
+    if(!current_id) return;
 
-    document.getElementById(type).style.display="block";
+    let res = await fetch("/build-status/" + current_id);
+    let data = await res.json();
+
+    log("⏳ " + data.status);
+
+    if(data.status === "done"){
+        log("✅ Done");
+
+        document.getElementById("frame").src = "/preview/" + current_id;
+    } else {
+        setTimeout(check, 2000);
+    }
 }
-
-function deploy(){
-    fetch("/auto-deploy",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({build_id:buildId})
-    })
-    .then(r=>r.json())
-    .then(d=>{
-        alert("Live URL: "+d.url);
-    });
-}
-
-function logout(){
-    location.href="/";
-}
-
 </script>
 
 </body>

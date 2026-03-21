@@ -1,153 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIMANT AI Dashboard</title>
+<title>Aimant AI</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
-body{
-    margin:0;
-    font-family:sans-serif;
-    background:linear-gradient(135deg,#0f172a,#020617);
-    color:white;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
 }
 
-.header{
-    display:flex;
-    justify-content:space-between;
-    padding:15px;
-    background:rgba(255,255,255,0.05);
-    backdrop-filter:blur(10px);
+body {
+    background: #ffffff;
+    color: #111;
 }
 
-.container{
-    padding:20px;
+/* NAVBAR */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 50px;
+    border-bottom: 1px solid #eee;
 }
 
-.card{
-    background:rgba(255,255,255,0.05);
-    padding:15px;
-    border-radius:12px;
-    margin-top:15px;
+.logo {
+    font-weight: 600;
+    font-size: 20px;
 }
 
-button{
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    cursor:pointer;
-    font-weight:bold;
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
 }
 
-.build{
-    background:linear-gradient(45deg,#6366f1,#8b5cf6);
-    color:white;
+.btn-dark {
+    background: black;
+    color: white;
 }
 
-.logout{
-    background:red;
-    color:white;
+/* HERO */
+.hero {
+    text-align: center;
+    padding: 80px 20px;
 }
 
-input{
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:10px;
-    background:#111827;
-    color:white;
+.hero h1 {
+    font-size: 42px;
+    font-weight: 600;
 }
 
-.stats{
-    display:flex;
-    gap:10px;
+.hero p {
+    margin-top: 15px;
+    color: #666;
 }
 
-.stat{
-    flex:1;
-    background:#111827;
-    padding:10px;
-    border-radius:10px;
-    text-align:center;
+.input-box {
+    margin-top: 30px;
+}
+
+input {
+    padding: 15px;
+    width: 60%;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+.generate {
+    margin-left: 10px;
+}
+
+/* FEATURES */
+.features {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 60px;
+}
+
+.card {
+    padding: 30px;
+    border: 1px solid #eee;
+    border-radius: 15px;
+    width: 250px;
+    text-align: center;
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* FOOTER */
+.footer {
+    text-align: center;
+    padding: 30px;
+    border-top: 1px solid #eee;
+    color: #777;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">
-    <h3>🚀 AIMANT AI</h3>
-    <button class="logout" onclick="logout()">Logout</button>
+<!-- NAVBAR -->
+<div class="navbar">
+    <div class="logo">Aimant AI</div>
+    <button class="btn btn-dark">Login</button>
 </div>
 
-<div class="container">
+<!-- HERO -->
+<div class="hero">
+    <h1>Build AI Apps in Seconds</h1>
+    <p>Just enter your idea and get full website + backend + deploy</p>
 
-<div class="stats">
-    <div class="stat">Credits: <span id="credits">0</span></div>
-    <div class="stat">Projects: <span id="projects">0</span></div>
+    <div class="input-box">
+        <input id="idea" placeholder="Enter your idea...">
+        <button class="btn btn-dark generate" onclick="build()">Generate</button>
+    </div>
 </div>
 
-<div class="card">
-    <h3>💡 Build SaaS</h3>
-    <input id="idea" placeholder="Enter your SaaS idea...">
-    <br><br>
-    <button class="build" onclick="build()">🚀 Build Now</button>
+<!-- FEATURES -->
+<div class="features">
+    <div class="card">⚡ Instant Build</div>
+    <div class="card">🚀 Auto Deploy</div>
+    <div class="card">💰 SaaS Ready</div>
 </div>
 
-<div class="card">
-    <h3>📂 Your Projects</h3>
-    <div id="list"></div>
-</div>
-
+<!-- FOOTER -->
+<div class="footer">
+    © 2026 Aimant AI
 </div>
 
 <script>
-
-function logout(){
-    localStorage.removeItem("token");
-    location.href="/landing";
-}
-
-function build(){
+async function build() {
     let idea = document.getElementById("idea").value;
 
-    fetch("/start-build",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization":localStorage.getItem("token")
-        },
-        body:JSON.stringify({idea})
-    })
-    .then(r=>r.json())
-    .then(d=>{
-        localStorage.setItem("build_id", d.build_id);
-        location.href="/builder";
+    let res = await fetch("/build", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({idea})
     });
+
+    let data = await res.json();
+    alert("Build Started 🚀 ID: " + data.build_id);
 }
-
-function load(){
-    fetch("/dashboard",{
-        headers:{
-            "Authorization":localStorage.getItem("token")
-        }
-    })
-    .then(r=>r.json())
-    .then(d=>{
-        document.getElementById("credits").innerText = d.credits;
-        document.getElementById("projects").innerText = d.projects.length;
-
-        let html="";
-        d.projects.forEach(p=>{
-            html += `<div>${p.idea}</div>`;
-        });
-
-        document.getElementById("list").innerHTML = html;
-    });
-}
-
-load();
-
 </script>
 
 </body>

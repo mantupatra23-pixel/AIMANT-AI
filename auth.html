@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login</title>
+
+<style>
+body {
+    margin:0;
+    font-family:Arial;
+    background:#f9fafb;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.box {
+    background:white;
+    padding:30px;
+    border-radius:12px;
+    width:300px;
+    border:1px solid #eee;
+}
+
+input {
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border:1px solid #ddd;
+    border-radius:8px;
+}
+
+button {
+    width:100%;
+    padding:10px;
+    margin-top:15px;
+    background:black;
+    color:white;
+    border:none;
+    border-radius:8px;
+}
+
+.switch {
+    margin-top:10px;
+    text-align:center;
+    color:#666;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+    <h2 id="title">Login</h2>
+
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+
+    <button onclick="submit()">Continue</button>
+
+    <div class="switch" onclick="toggle()">Switch to Signup</div>
+</div>
+
+<script>
+let isLogin = true;
+
+function toggle(){
+    isLogin = !isLogin;
+    document.getElementById("title").innerText = isLogin ? "Login" : "Signup";
+}
+
+async function submit(){
+    let email = document.getElementById("email").value;
+    let password = document.getElementById("password").value;
+
+    let url = isLogin ? "/login" : "/signup";
+
+    let res = await fetch(url,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email,password})
+    });
+
+    let data = await res.json();
+
+    if(data.token){
+        localStorage.setItem("token", data.token);
+        window.location.href = "/dashboard.html";
+    } else {
+        alert(data.error || data.msg);
+    }
+}
+</script>
+
+</body>
+</html>

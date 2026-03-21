@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body style="padding:40px;">
+
+<h2>📊 Analytics</h2>
+<canvas id="chart"></canvas>
+
+<script>
+async function load(){
+    let res = await fetch("/analytics");
+    let data = await res.json();
+
+    new Chart(document.getElementById("chart"), {
+        type: 'line',
+        data: {
+            labels: ["Users","Projects","Revenue"],
+            datasets: [{
+                label: "Stats",
+                data: [data.users, data.projects, data.revenue]
+            }]
+        }
+    });
+}
+load();
+</script>
+
+</body>
+</html>
