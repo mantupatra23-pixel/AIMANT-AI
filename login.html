@@ -6,127 +6,120 @@
 
 <style>
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #000000, #434343);
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #000000, #333333);
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .container {
-    width: 320px;
-    background: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    text-align: center;
+  width: 320px;
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  text-align: center;
 }
 
 h2 {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 input {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    font-size: 14px;
-}
-
-input:focus {
-    outline: none;
-    border-color: black;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: 1px solid #ddd;
 }
 
 button {
-    width: 100%;
-    padding: 12px;
-    background: black;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-top: 10px;
-    font-size: 15px;
-    transition: 0.3s;
+  width: 100%;
+  padding: 12px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
 }
 
 button:hover {
-    background: #333;
+  background: #333;
 }
 
 .link {
-    margin-top: 15px;
-    font-size: 14px;
-}
-
-.link a {
-    text-decoration: none;
-    color: black;
-    font-weight: bold;
+  margin-top: 15px;
 }
 </style>
+
 </head>
 
 <body>
 
 <div class="container">
-    <h2>Login</h2>
+  <h2>Login</h2>
 
-    <input id="email" type="email" placeholder="Enter Email">
-    <input id="password" type="password" placeholder="Enter Password">
+  <input id="email" type="email" placeholder="Enter email">
+  <input id="password" type="password" placeholder="Enter password">
 
-    <button onclick="login()">Login</button>
+  <button onclick="login()">Login</button>
 
-    <div class="link">
-        Don't have account? <a href="/signup-page">Signup</a>
-    </div>
+  <div class="link">
+    Don't have account? <a href="/signup-page">Signup</a>
+  </div>
 </div>
 
 <script>
 async function login() {
 
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-    if (!email || !password) {
-        alert("Enter email and password");
-        return;
+  if (!email || !password) {
+    alert("Enter email and password");
+    return;
+  }
+
+  try {
+
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: email,
+        password: password
+      })
+    });
+
+    const data = await res.json();
+
+    // ✅ SUCCESS
+    if (res.ok) {
+      alert("Login Success 🚀");
+
+      // token save (future use)
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+
+      // redirect
+      window.location.href = "/dashboard";
     }
 
-    try {
-        const res = await fetch("/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                email: email,
-                password: password
-            })
-        });
-
-        const data = await res.json();
-
-        if (data.token) {
-            localStorage.setItem("token", data.token);
-
-            alert("Login Success 🚀");
-
-            // ✅ redirect after login
-            window.location.href = "/dashboard";
-
-        } else {
-            alert(data.error || "Invalid credentials");
-        }
-
-    } catch (err) {
-        alert("Server error");
+    // ❌ ERROR
+    else {
+      alert(data.error || "Invalid login credentials");
     }
+
+  } catch (err) {
+    alert("Server error");
+  }
 }
 </script>
 
