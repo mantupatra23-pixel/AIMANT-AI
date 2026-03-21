@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Header
+from sqlalchemy.orm import Session
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.responses import FileResponse
@@ -441,6 +442,7 @@ def update_daily():
 @app.post("/signup")
 def signup(user: UserCreate, db: Session = Depends(get_db)):
 
+    # ✅ FIXED QUERY
     existing = db.query(User).filter(User.email == user.email).first()
 
     if existing:
