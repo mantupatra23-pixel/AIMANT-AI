@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Header
 from sqlalchemy.orm import Session
+from db import engine, Base, get_db
 import models
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse
@@ -20,6 +21,8 @@ import razorpay
 import hmac, hashlib
 from fastapi import Request
 import paramiko
+import datetime
+import jwt
 
 # ===== PASSWORD SECURITY =====
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -48,6 +51,8 @@ templates = Jinja2Templates(directory=".")
 
 # 👇 YAHI ADD KAR
 Base.metadata.create_all(bind=engine)
+
+SECRET = "aimant_secret_key"
 
 # ===== CONFIG =====
 SECRET = "aimant_secret"
@@ -87,7 +92,7 @@ def check_plan(user):
 # ===== CORS =====
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # later domain set karenge
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -130,47 +135,20 @@ class User(BaseModel):
 class BuildRequest(BaseModel):
     idea: str
 
-# ===== AUTH =====
-import jwt
-
-SECRET = "aimant-secret"
-
+# ===== JWT =====
 def create_token(email):
-    try:
-        token = jwt.encode(
-            {"email": email},
-            SECRET,
-            algorithm="HS256"
-        )
-        return token
-    except Exception as e:
-        return None
-
+    payload = {
+        "email": email,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    }
+    return jwt.encode(payload, SECRET, algorithm="HS256")
 
 def get_user(token):
     try:
-        if not token:
-            return None
-
-        # अगर "Bearer token" format आए तो clean करो
-        if " " in token:
-            token = token.split(" ")[1]
-
-        data = jwt.decode(
-            token,
-            SECRET,
-            algorithms=["HS256"]
-        )
-
-        return data.get("email")
-
-    except Exception as e:
+        data = jwt.decode(token, SECRET, algorithms=["HS256"])
+        return data["email"]
+    except:
         return None
-
-
-def is_admin(user):
-    return user == ADMIN_EMAIL
-
 
 # ===== MEMORY =====
 memory = {}

@@ -5,60 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aimant AI Dashboard</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
 <style>
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
+    font-family: Arial;
 }
 
 body {
     display: flex;
-    background: #f9fafb;
+    background: #f4f6f9;
 }
 
 /* SIDEBAR */
 .sidebar {
-    width: 240px;
+    width: 230px;
     height: 100vh;
-    background: #fff;
-    border-right: 1px solid #eee;
+    background: #111;
+    color: white;
     padding: 20px;
 }
 
 .logo {
     font-size: 20px;
-    font-weight: 600;
     margin-bottom: 30px;
-}
-
-.menu {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    font-weight: bold;
 }
 
 .menu a {
+    display: block;
+    color: #ccc;
     text-decoration: none;
-    color: #333;
     padding: 10px;
     border-radius: 8px;
 }
 
 .menu a:hover {
-    background: #f3f3f3;
+    background: #222;
+    color: white;
 }
 
 /* MAIN */
 .main {
     flex: 1;
-    padding: 30px;
+    padding: 25px;
 }
 
-/* TOP BAR */
+/* TOPBAR */
 .topbar {
     display: flex;
     justify-content: space-between;
@@ -67,42 +61,42 @@ body {
 
 .search {
     padding: 10px;
-    border: 1px solid #ddd;
     border-radius: 8px;
+    border: 1px solid #ddd;
 }
 
 /* CARDS */
 .cards {
     display: flex;
     gap: 20px;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
 }
 
 .card {
     flex: 1;
-    background: #fff;
+    background: white;
     padding: 20px;
     border-radius: 12px;
-    border: 1px solid #eee;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
 
 /* BUILD BOX */
 .build-box {
-    background: #fff;
+    background: white;
     padding: 20px;
     border-radius: 12px;
-    border: 1px solid #eee;
+    margin-bottom: 20px;
 }
 
 input {
-    width: 80%;
-    padding: 12px;
-    border: 1px solid #ddd;
+    padding: 10px;
+    width: 70%;
     border-radius: 8px;
+    border: 1px solid #ddd;
 }
 
 button {
-    padding: 12px 20px;
+    padding: 10px 20px;
     background: black;
     color: white;
     border: none;
@@ -110,17 +104,12 @@ button {
     cursor: pointer;
 }
 
-/* PROJECT LIST */
-.projects {
-    margin-top: 20px;
-}
-
+/* PROJECT */
 .project {
-    background: #fff;
+    background: white;
     padding: 15px;
-    border: 1px solid #eee;
     border-radius: 10px;
-    margin-bottom: 10px;
+    margin-top: 10px;
     display: flex;
     justify-content: space-between;
 }
@@ -158,25 +147,59 @@ button {
 
     <!-- BUILD -->
     <div class="build-box">
-        <h3>Create New Project</h3><br>
+        <h3>Create Project</h3><br>
         <input id="idea" placeholder="Enter idea...">
         <button onclick="build()">Build</button>
     </div>
 
-    <!-- PROJECTS -->
-    <div class="projects" id="projectList"></div>
+    <!-- PROJECT LIST -->
+    <div id="projectList"></div>
 
 </div>
 
 <script>
 
+// 🔐 CHECK LOGIN (TOKEN)
+const token = localStorage.getItem("token");
+
+if (!token) {
+    alert("Login required");
+    window.location.href = "/login-page";
+}
+
+// ✅ LOAD DASHBOARD (TOKEN AUTH)
+fetch("/dashboard", {
+    headers: {
+        "Authorization": token
+    }
+})
+.then(res => res.json())
+.then(data => {
+    console.log(data);
+})
+.catch(() => {
+    alert("Unauthorized");
+    window.location.href = "/login-page";
+});
+
+
+// 🚀 BUILD PROJECT
 async function build() {
+
     let idea = document.getElementById("idea").value;
+
+    if (!idea) {
+        alert("Enter idea");
+        return;
+    }
 
     let res = await fetch("/build", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({idea})
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": token
+        },
+        body: JSON.stringify({ idea })
     });
 
     let data = await res.json();
@@ -184,34 +207,50 @@ async function build() {
     addProject(data.build_id);
 }
 
+// ADD PROJECT UI
 function addProject(id) {
     let div = document.createElement("div");
     div.className = "project";
+
     div.innerHTML = `
         <span>Project ${id}</span>
         <button onclick="check('${id}')">Check</button>
     `;
+
     document.getElementById("projectList").appendChild(div);
 }
 
+// CHECK STATUS
 async function check(id) {
-    let res = await fetch("/build-status/" + id);
+
+    let res = await fetch("/build-status/" + id, {
+        headers: {
+            "Authorization": token
+        }
+    });
+
     let data = await res.json();
 
-    if(data.status === "done") {
+    if (data.status === "done") {
         alert("✅ Ready!");
     } else {
         alert("⏳ Still building...");
     }
 }
 
-/* LOAD ANALYTICS */
+// 📊 LOAD STATS
 async function loadStats() {
-    let res = await fetch("/analytics");
+
+    let res = await fetch("/analytics", {
+        headers: {
+            "Authorization": token
+        }
+    });
+
     let data = await res.json();
 
-    document.getElementById("projects").innerText = data.projects;
-    document.getElementById("revenue").innerText = data.revenue;
+    document.getElementById("projects").innerText = data.projects || 0;
+    document.getElementById("revenue").innerText = data.revenue || 0;
 }
 
 loadStats();
