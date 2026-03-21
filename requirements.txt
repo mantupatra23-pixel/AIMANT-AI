@@ -9,3 +9,4 @@ pydantic
 gunicorn
 pyjwt
 paramiko
+jinja2
