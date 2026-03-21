@@ -1,125 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Login - Aimant AI</title>
+  <title>Aimant AI Login</title>
+  <style>
+    body {
+      margin:0;
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background: linear-gradient(270deg,#0f2027,#203a43,#2c5364);
+      background-size:600% 600%;
+      animation:bgMove 10s infinite;
+      font-family:Arial;
+      color:white;
+    }
 
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #000000, #333333);
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+    @keyframes bgMove {
+      0%{background-position:0% 50%;}
+      50%{background-position:100% 50%;}
+      100%{background-position:0% 50%;}
+    }
 
-.container {
-  width: 320px;
-  background: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  text-align: center;
-}
+    .box {
+      background:rgba(0,0,0,0.7);
+      padding:30px;
+      border-radius:15px;
+      width:320px;
+      text-align:center;
+      backdrop-filter: blur(10px);
+      animation:fadeIn 1s ease;
+    }
 
-h2 {
-  margin-bottom: 20px;
-}
+    @keyframes fadeIn {
+      from {opacity:0; transform:translateY(20px);}
+      to {opacity:1; transform:translateY(0);}
+    }
 
-input {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-}
+    input {
+      width:90%;
+      padding:12px;
+      margin:10px;
+      border-radius:10px;
+      border:none;
+      outline:none;
+    }
 
-button {
-  width: 100%;
-  padding: 12px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 10px;
-}
+    button {
+      width:95%;
+      padding:12px;
+      margin-top:10px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:bold;
+    }
 
-button:hover {
-  background: #333;
-}
+    .login { background:#00ffcc; }
+    .google { background:white; color:black; }
 
-.link {
-  margin-top: 15px;
-}
-</style>
-
+    a { color:#00ffcc; }
+  </style>
 </head>
-
 <body>
 
-<div class="container">
-  <h2>Login</h2>
+<div class="box">
+  <h2>🚀 Aimant AI</h2>
 
-  <input id="email" type="email" placeholder="Enter email">
-  <input id="password" type="password" placeholder="Enter password">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
 
-  <button onclick="login()">Login</button>
+  <button class="login" onclick="login()">Login</button>
 
-  <div class="link">
-    Don't have account? <a href="/signup-page">Signup</a>
-  </div>
+  <button class="google" onclick="googleLogin()">🔐 Login with Google</button>
+
+  <p><a href="signup.html">Create Account</a></p>
 </div>
 
-<script>
-async function login() {
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+const supabase = createClient(
+  "https://YOUR_PROJECT.supabase.co",
+  "YOUR_ANON_KEY"
+);
 
-  if (!email || !password) {
-    alert("Enter email and password");
-    return;
+// 🔐 EMAIL LOGIN
+window.login = async function() {
+  let email = document.getElementById("email").value;
+  let password = document.getElementById("password").value;
+
+  let res = await fetch("https://aimant-ai.onrender.com/login", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({email,password})
+  });
+
+  let data = await res.json();
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    window.location.href="dashboard.html";
+  } else {
+    alert(data.error);
   }
+};
 
-  try {
-
-    const res = await fetch("/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password
-      })
-    });
-
-    const data = await res.json();
-
-    // ✅ SUCCESS
-    if (res.ok) {
-      alert("Login Success 🚀");
-
-      // token save (future use)
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
-
-      // redirect
-      window.location.href = "/dashboard";
+// 🔥 GOOGLE LOGIN
+window.googleLogin = async function () {
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin + "/dashboard.html"
     }
+  });
+};
 
-    // ❌ ERROR
-    else {
-      alert(data.error || "Invalid login credentials");
-    }
+// ✅ AUTO LOGIN AFTER GOOGLE
+const { data: { session } } = await supabase.auth.getSession();
 
-  } catch (err) {
-    alert("Server error");
-  }
+if (session) {
+  localStorage.setItem("token", session.access_token);
+  window.location.href = "dashboard.html";
 }
 </script>
 

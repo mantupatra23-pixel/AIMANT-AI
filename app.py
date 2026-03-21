@@ -1,7 +1,4 @@
 from fastapi import FastAPI, Header
-from sqlalchemy.orm import Session
-from db import engine, Base, get_db
-import models
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.responses import FileResponse
@@ -10,43 +7,21 @@ from pydantic import BaseModel
 import requests, time, uuid, jwt, os
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
-from db import engine
-from db import Base
-from db import get_db
-from models import User
 from fastapi import Depends
 from sqlalchemy import create_engine
-from passlib.context import CryptContext
 import razorpay
 import hmac, hashlib
 from fastapi import Request
 import paramiko
 import datetime
-import jwt
 from supabase import create_client, Client
+from fastapi import Header
 
-
-# ===== PASSWORD SECURITY =====
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def hash_password(password: str):
-    return pwd_context.hash(password)
-
-def verify_password(plain, hashed):
-    return pwd_context.verify(plain, hashed)
-
-# ===== PYDANTIC MODELS =====
-class AuthSchema(BaseModel):
-    email: str
-    password: str
 
 # ===== APP =====
 app = FastAPI()
 
 templates = Jinja2Templates(directory=".")
-
-# 👇 YAHI ADD KAR
-Base.metadata.create_all(bind=engine)
 
 SECRET = "aimant_secret_key"
 
@@ -75,19 +50,7 @@ SUPABASE_KEY =os.getenv("SUPABASE_KEY")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ===== PLANS =====
-plans = {
-    "free": 5,
-    "pro": 50,
-    "premium": 200
-}
-
-# ✅ YAHAN FUNCTION
-def check_plan(user):
-    if "expiry" in user and time.time() > user["expiry"]:
-        user["plan"] = "free"
-        user["credits"] = 5
-
+WEBHOOK_SECRET = "your_webhook_secret_here"
 
 # ===== CORS =====
 app.add_middleware(
@@ -115,18 +78,6 @@ def deploy_project(bid):
         "url": url
     }
 
-    # 🔥 USER DATA ADD (YAHAN DAAL)
-    user_email = builds[bid].get("user")
-    if user_email:
-        user_data = get_user_data(user_email)
-
-        user_data["deployments"][bid] = {
-            "status": "live",
-            "url": url
-        }
-
-    log(bid, f"✅ Live: {url}")
-
 # ===== MODELS =====
 class User(BaseModel):
     email: str
@@ -135,54 +86,6 @@ class User(BaseModel):
 class BuildRequest(BaseModel):
     idea: str
 
-# ===============================
-# JWT CONFIG (FINAL)
-# ===============================
-
-import jwt
-import time
-from fastapi import Header
-
-SECRET_KEY = "aimant_secret"
-ALGORITHM = "HS256"
-
-# ===============================
-# CREATE TOKEN
-# ===============================
-def create_token(email: str):
-    payload = {
-        "email": email,
-        "exp": int(time.time()) + 86400  # 24 hours
-    }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-# ===============================
-# VERIFY TOKEN
-# ===============================
-def verify_token(token: str):
-    try:
-        data = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return data.get("email")
-    except:
-        return None
-
-# ===============================
-# GET CURRENT USER (HEADER)
-# ===============================
-def get_current_user(Authorization: str = Header(None)):
-
-    if not Authorization:
-        return None
-
-    # अगर "Bearer token" format है तो split करो
-    if " " in Authorization:
-        token = Authorization.split(" ")[1]
-    else:
-        token = Authorization
-
-    email = verify_token(token)
-
-    return email
 
 # ===== MEMORY =====
 memory = {}
@@ -451,30 +354,51 @@ def update_daily():
         "revenue": stats["revenue"]
     })
 
+# ===== AUTH HELPER =====
+def get_user(Authorization: str = Header(None)):
+    if not Authorization:
+        return None
+
+    token = Authorization.replace("Bearer ", "")
+
+    try:
+        user = supabase.auth.get_user(token)
+        return user.user.email
+    except:
+        return None
+
 # ===== AUTH =====
+
 @app.post("/signup")
-def signup(user: AuthSchema):
+def signup(user: dict):
     try:
         res = supabase.auth.sign_up({
-            "email": user.email,
-            "password": user.password
+            "email": user["email"],
+            "password": user["password"]
         })
 
-        return {
-            "msg": "Signup successful"
-        }
+        if not res.user:
+            return {"error": "Signup failed"}
+
+        supabase.table("users_data").insert({
+            "email": user["email"],
+            "credits": 5,
+            "plan": "free",
+            "expiry": None
+        }).execute()
+
+        return {"msg": "Signup successful"}
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
+
 
 @app.post("/login")
-def login(user: AuthSchema):
+def login(user: dict):
     try:
         res = supabase.auth.sign_in_with_password({
-            "email": user.email,
-            "password": user.password
+            "email": user["email"],
+            "password": user["password"]
         })
 
         if not res.session:
@@ -489,14 +413,33 @@ def login(user: AuthSchema):
         return {"error": str(e)}
 
 # ===== PAYMENT APIs =====
+# 🚀 CREATE ORDER
 @app.post("/create-order")
-def create_order(amount: int):
-    order = client.order.create({
-        "amount": amount * 100,
-        "currency": "INR"
-    })
-    return order
+def create_order(data: dict):
 
+    amount = data.get("amount")
+
+    if not amount:
+        return {"error": "Amount required"}
+
+    try:
+        order = client.order.create({
+            "amount": int(amount) * 100,  # paise
+            "currency": "INR",
+            "payment_capture": 1
+        })
+
+        return {
+            "order_id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ✅ VERIFY PAYMENT
 @app.post("/verify-payment")
 def verify_payment(data: dict):
     try:
@@ -506,32 +449,37 @@ def verify_payment(data: dict):
             "razorpay_signature": data["signature"]
         })
 
-        user = data.get("email")
-
-        if user not in users:
-            return {"error": "User not found"}
-
-        credits = data.get("amount", 0) // 10
-        users[user]["credits"] += credits
-
-        # 💎 PLAN LOGIC
+        email = data.get("email")
         amount = data.get("amount", 0)
 
-        if amount == 99:
-            users[user]["plan"] = "pro"
-        elif amount == 299:
-            users[user]["plan"] = "premium"
+        credits = amount // 10
 
-        users[user]["expiry"] = time.time() + 30*24*3600
+        # plan logic
+        plan = "free"
+        if amount == 99:
+            plan = "pro"
+        elif amount == 299:
+            plan = "premium"
+
+        expiry = int(time.time()) + 30 * 24 * 3600
+
+        # 🔥 UPSERT (insert/update)
+        supabase.table("users_data").upsert({
+            "email": email,
+            "credits": credits,
+            "plan": plan,
+            "expiry": expiry
+        }).execute()
 
         return {
             "msg": "Payment success",
-            "credits": users[user]["credits"],
-            "plan": users[user].get("plan")
+            "credits": credits,
+            "plan": plan
         }
 
     except Exception as e:
-        return {"error": "Payment failed"}
+        return {"error": str(e)}
+
 
 # ===== PAYMENT / WEBHOOK =====
 @app.post("/webhook")
@@ -546,18 +494,59 @@ async def webhook(request: Request):
         hashlib.sha256
     ).hexdigest()
 
-    if expected != signature:
+    if not hmac.compare_digest(expected, signature):
         return {"error": "Invalid signature"}
 
-    data = await request.json()
+    data = json.loads(body)
 
-    if data["event"] == "payment.captured":
+    # 🎯 PAYMENT SUCCESS
+    if data.get("event") == "payment.captured":
 
-        email = data["payload"]["payment"]["entity"]["notes"]["email"]
-        amount = data["payload"]["payment"]["entity"]["amount"] // 100
+        payment = data["payload"]["payment"]["entity"]
 
-        if email in users:
-            users[email]["credits"] += amount // 10
+        amount = payment.get("amount")  # paise
+        notes = payment.get("notes", {})
+        email = notes.get("email")   # 🔥 important
+
+        if not email:
+            return {"error": "No user email"}
+
+        # 💰 CREDIT CALCULATION
+        credits = amount // 1000   # 100₹ = 10 credits
+
+        # 💎 PLAN LOGIC
+        plan = "free"
+        expiry = None
+
+        if amount == 9900:  # ₹99
+            plan = "pro"
+            expiry = int(time.time()) + 30 * 24 * 3600
+
+        elif amount == 29900:  # ₹299
+            plan = "premium"
+            expiry = int(time.time()) + 30 * 24 * 3600
+
+        # 🔥 CHECK USER EXISTS
+        user = supabase.table("users_data").select("*").eq("email", email).execute()
+
+        if user.data:
+            # UPDATE
+            current = user.data[0]
+
+            supabase.table("users_data").update({
+                "credits": current["credits"] + credits,
+                "plan": plan,
+                "expiry": expiry
+            }).eq("email", email).execute()
+
+        else:
+            # CREATE NEW
+            supabase.table("users_data").insert({
+                "email": email,
+                "credits": credits,
+                "plan": plan,
+                "expiry": expiry
+            }).execute()
 
     return {"status": "ok"}
 
@@ -767,11 +756,15 @@ def ai_edit(build_id: str, prompt: str, authorization: str = Header(None)):
 
 # ===== DASHBOARD =====
 @app.get("/dashboard")
-def dashboard():
-    return {
-        "credits": 100,
-        "templates": []
-    }
+def dashboard(authorization: str = Header(None)):
+    email = get_user(authorization)
+
+    if not email:
+        return {"error": "Unauthorized"}
+
+    data = supabase.table("users_data").select("*").eq("email", email).execute()
+
+    return data.data
 
 # ===== TEMPLATE MARKETPLACE =====
 template_store = []   # ✅ NAME CHANGE
@@ -990,6 +983,15 @@ def login_page(request: Request):
 @app.get("/signup-page", response_class=HTMLResponse)
 def signup_page(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
+
+# 💰 PAYMENT API (YAHAN ADD KAR)
+@app.post("/create-order")
+def create_order(amount: int):
+    order = client.order.create({
+        "amount": amount * 100,
+        "currency": "INR"
+    })
+    return order
 
 # ===== RUN =====
 if __name__ == "__main__":
