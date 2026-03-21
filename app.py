@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Header
+from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,6 +42,7 @@ class UserLogin(BaseModel):
 # ===== APP =====
 app = FastAPI()
 
+templates = Jinja2Templates(directory=".")
 
 # 👇 YAHI ADD KAR
 Base.metadata.create_all(bind=engine)
