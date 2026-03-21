@@ -477,15 +477,16 @@ def login(user: AuthSchema):
             "password": user.password
         })
 
+        if not res.session:
+            return {"error": "Login failed"}
+
         return {
             "msg": "Login successful",
             "token": res.session.access_token
         }
 
-    except:
-        return {
-            "error": "Invalid email or password"
-        }
+    except Exception as e:
+        return {"error": str(e)}
 
 # ===== PAYMENT APIs =====
 @app.post("/create-order")
