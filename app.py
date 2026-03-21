@@ -11,9 +11,6 @@ from models import User
 from fastapi import Depends
 from passlib.context import CryptContext
 import razorpay
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.ext.declarative import declarative_base
 import hmac, hashlib
 from fastapi import Request
 import paramiko
