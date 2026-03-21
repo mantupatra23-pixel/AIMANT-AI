@@ -1,37 +1,37 @@
-# ===== DATABASE SETUP (FINAL - PRODUCTION READY) =====
+# ===== DATABASE SETUP (FINAL - NO ERROR) =====
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-# 🔥 Get DATABASE_URL from Render ENV
+# Get DATABASE_URL from Render
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# 🔁 Fallback (local testing only)
+# Fallback (local)
 if not DATABASE_URL:
     DATABASE_URL = "sqlite:///./aimant.db"
 
-# 🔥 Fix for Render Postgres (VERY IMPORTANT)
+# Fix postgres URL
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# 🔥 Engine setup
+# Engine
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True
 )
 
-# 🔥 Session setup
+# Session
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine
 )
 
-# 🔥 Base model
+# Base (IMPORTANT)
 Base = declarative_base()
 
-# 🔥 Dependency (FastAPI use karega)
+# Dependency
 def get_db():
     db = SessionLocal()
     try:
