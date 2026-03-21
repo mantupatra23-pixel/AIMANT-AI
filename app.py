@@ -23,7 +23,7 @@ import paramiko
 app = FastAPI()
 
 # ===== SECURITY =====
-pwd_context = CryptContext(schemes=["bcrypt"], depre>
+pwd_context = CryptContext(schemes=["bcrypt"])
 
 def hash_password(password):
     return pwd_context.hash(password)
@@ -124,31 +124,46 @@ class BuildRequest(BaseModel):
     idea: str
 
 # ===== AUTH =====
+import jwt
+
+SECRET = "aimant-secret"
+
 def create_token(email):
-    return jwt.encode({"email": email}, SECRET, algorithm="HS256")
+    try:
+        token = jwt.encode(
+            {"email": email},
+            SECRET,
+            algorithm="HS256"
+        )
+        return token
+    except Exception as e:
+        return None
+
 
 def get_user(token):
     try:
-        return jwt.decode(token, SECRET, algorithms=["HS256"])["email"]
-    except:
+        if not token:
+            return None
+
+        # अगर "Bearer token" format आए तो clean करो
+        if " " in token:
+            token = token.split(" ")[1]
+
+        data = jwt.decode(
+            token,
+            SECRET,
+            algorithms=["HS256"]
+        )
+
+        return data.get("email")
+
+    except Exception as e:
         return None
+
 
 def is_admin(user):
     return user == ADMIN_EMAIL
 
-
-# 🔥 USER DATA SYSTEM (NEW - ADVANCED SAAS)
-users_data = {}
-
-def get_user_data(email):
-    if email not in users_data:
-        users_data[email] = {
-            "builds": {},
-            "domains": {},
-            "deployments": {},
-            "memory": []
-        }
-    return users_data[email]
 
 # ===== MEMORY =====
 memory = {}
