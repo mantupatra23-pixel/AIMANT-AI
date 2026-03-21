@@ -993,6 +993,10 @@ def create_order(amount: int):
     })
     return order
 
+@app.get("/")
+def home():
+    return {"msg": "Aimant AI Backend Running 🚀"}
+
 # ===== RUN =====
 if __name__ == "__main__":
     import uvicorn
