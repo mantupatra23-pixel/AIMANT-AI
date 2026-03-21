@@ -5,152 +5,132 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aimant AI</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
 <style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
-}
-
 body {
-    background: #ffffff;
-    color: #111;
+  font-family: Arial;
+  text-align: center;
+  background: #fff;
 }
 
-/* NAVBAR */
+/* NAV */
 .navbar {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px 50px;
-    border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
 }
-
-.logo {
-    font-weight: 600;
-    font-size: 20px;
-}
-
 .btn {
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-dark {
-    background: black;
-    color: white;
+  padding: 10px 20px;
+  background: black;
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 
 /* HERO */
 .hero {
-    text-align: center;
-    padding: 80px 20px;
-}
-
-.hero h1 {
-    font-size: 42px;
-    font-weight: 600;
-}
-
-.hero p {
-    margin-top: 15px;
-    color: #666;
-}
-
-.input-box {
-    margin-top: 30px;
+  padding: 40px;
 }
 
 input {
-    padding: 15px;
-    width: 60%;
-    border-radius: 10px;
-    border: 1px solid #ddd;
+  padding: 12px;
+  margin: 5px;
+  width: 250px;
 }
 
-.generate {
-    margin-left: 10px;
-}
-
-/* FEATURES */
-.features {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    padding: 60px;
-}
-
-.card {
-    padding: 30px;
-    border: 1px solid #eee;
-    border-radius: 15px;
-    width: 250px;
-    text-align: center;
-    transition: 0.3s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-}
-
-/* FOOTER */
-.footer {
-    text-align: center;
-    padding: 30px;
-    border-top: 1px solid #eee;
-    color: #777;
+/* BOX */
+.box {
+  margin-top: 30px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- NAVBAR -->
+<!-- NAV -->
 <div class="navbar">
-    <div class="logo">Aimant AI</div>
-    <button class="btn btn-dark">Login</button>
+  <h2>Aimant AI</h2>
 </div>
 
 <!-- HERO -->
 <div class="hero">
-    <h1>Build AI Apps in Seconds</h1>
-    <p>Just enter your idea and get full website + backend + deploy</p>
-
-    <div class="input-box">
-        <input id="idea" placeholder="Enter your idea...">
-        <button class="btn btn-dark generate" onclick="build()">Generate</button>
-    </div>
+  <h1>Build AI Apps in Seconds</h1>
 </div>
 
-<!-- FEATURES -->
-<div class="features">
-    <div class="card">⚡ Instant Build</div>
-    <div class="card">🚀 Auto Deploy</div>
-    <div class="card">💰 SaaS Ready</div>
+<!-- SIGNUP -->
+<div class="box">
+  <h3>Signup</h3>
+  <input id="signup_email" placeholder="Email"><br>
+  <input id="signup_password" type="password" placeholder="Password"><br>
+  <button class="btn" onclick="signup()">Signup</button>
 </div>
 
-<!-- FOOTER -->
-<div class="footer">
-    © 2026 Aimant AI
+<!-- LOGIN -->
+<div class="box">
+  <h3>Login</h3>
+  <input id="login_email" placeholder="Email"><br>
+  <input id="login_password" type="password" placeholder="Password"><br>
+  <button class="btn" onclick="login()">Login</button>
+</div>
+
+<!-- BUILD -->
+<div class="box">
+  <h3>Build</h3>
+  <input id="idea" placeholder="Enter idea"><br>
+  <button class="btn" onclick="build()">Generate</button>
 </div>
 
 <script>
-async function build() {
-    let idea = document.getElementById("idea").value;
 
-    let res = await fetch("/build", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({idea})
-    });
+// SIGNUP
+async function signup() {
+  const res = await fetch("/signup", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      email: document.getElementById("signup_email").value,
+      password: document.getElementById("signup_password").value
+    })
+  });
 
-    let data = await res.json();
-    alert("Build Started 🚀 ID: " + data.build_id);
+  const data = await res.json();
+  alert(data.msg || data.error);
 }
+
+// LOGIN
+async function login() {
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      email: document.getElementById("login_email").value,
+      password: document.getElementById("login_password").value
+    })
+  });
+
+  const data = await res.json();
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    alert("Login success 🔥");
+  } else {
+    alert(data.error);
+  }
+}
+
+// BUILD
+async function build() {
+  const res = await fetch("/build", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      idea: document.getElementById("idea").value
+    })
+  });
+
+  const data = await res.json();
+  alert("Build ID: " + data.build_id);
+}
+
 </script>
 
 </body>
