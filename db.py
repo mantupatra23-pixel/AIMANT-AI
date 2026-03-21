@@ -1,14 +1,28 @@
+# ===== DATABASE SETUP (SAFE & WORKING) =====
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = "postgresql://USER:PASSWORD@HOST:PORT/DBNAME"
+# 🔥 SIMPLE DATABASE (NO ERROR)
+DATABASE_URL = "sqlite:///./aimant.db"
 
-engine = create_engine(DATABASE_URL)
+# engine
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False}
+)
 
-SessionLocal = sessionmaker(bind=engine)
+# session
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
+# base
 Base = declarative_base()
 
+# dependency
 def get_db():
     db = SessionLocal()
     try:
