@@ -761,11 +761,11 @@ def dashboard(authorization: str = Header(None)):
     }
 
 # ===== TEMPLATE MARKETPLACE =====
-templates = []
+template_store = []   # ✅ NAME CHANGE
 
 @app.post("/add-template")
 def add_template(name: str, code: str):
-    templates.append({
+    template_store.append({
         "name": name,
         "code": code
     })
@@ -773,7 +773,7 @@ def add_template(name: str, code: str):
 
 @app.get("/templates")
 def get_templates():
-    return templates
+    return template_store
 
 # ===== ADMIN =====
 @app.post("/admin/block")
