@@ -17,21 +17,29 @@ import hmac, hashlib
 from fastapi import Request
 import paramiko
 
-
-# ===== APP =====
-app = FastAPI()
-
-# ===== SECURITY =====
+# ===== PASSWORD SECURITY =====
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password):
     return pwd_context.hash(password)
 
-def verify_password(password, hashed):
-    return pwd_context.verify(password, hashed)
+def verify_password(plain, hashed):
+    return pwd_context.verify(plain, hashed)
 
-# ===== DATABASE =====
-DATABASE_URL = "postgresql://user:pass@host/db"
+# ===== PYDANTIC MODELS =====
+from pydantic import BaseModel
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+# ===== APP =====
+app = FastAPI()
+
 
 # 👇 YAHI ADD KAR
 Base.metadata.create_all(bind=engine)
@@ -428,49 +436,40 @@ def update_daily():
 
 # ===== AUTH =====
 @app.post("/signup")
-def signup(u: UserModel, db: Session = Depends(get_db)):
+def signup(user: UserCreate, db: Session = Depends(get_db)):
 
-    # check existing user
-    existing = db.query(User).filter(User.email == u.email).first()
+    existing = db.query(User).filter(User.email == user.email).first()
+
     if existing:
-        return {"error": "User exists"}
+        return {"error": "User already exists"}
 
-    # 🔐 password hash yaha use hoga
     new_user = User(
-        email=u.email,
-        password=hash_password(u.password),
+        email=user.email,
+        password=hash_password(user.password),
         credits=20
     )
 
     db.add(new_user)
     db.commit()
+    db.refresh(new_user)
 
-    # ✅ REAL USER COUNT
-    stats["users"] += 1
-
-    return {"msg": "Signup success"}
+    return {"message": "Signup successful"}
 
 @app.post("/login")
-def login(u: User):
-    user = users.get(u.email)
+def login(data: UserLogin, db: Session = Depends(get_db)):
+
+    user = db.query(User).filter(User.email == data.email).first()
 
     if not user:
         return {"error": "User not found"}
 
-    if u.email in blocked_users:
-        return {"error": "Blocked"}
+    if not verify_password(data.password, user.password):
+        return {"error": "Invalid password"}
 
-    # 💎 PLAN EXPIRY CHECK (CORRECT)
-    if user.get("expiry"):
-        if time.time() > user["expiry"]:
-            user["plan"] = "free"
-            user["expiry"] = None
-
-    # 🔐 PASSWORD CHECK (HASH FIX)
-    if verify_password(u.password, user["password"]):
-        return {"token": create_token(u.email)}
-
-    return {"error": "Invalid"}
+    return {
+        "message": "Login successful",
+        "email": user.email
+    }
 
 # ===== PAYMENT APIs =====
 @app.post("/create-order")
