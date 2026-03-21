@@ -767,11 +767,10 @@ def ai_edit(build_id: str, prompt: str, authorization: str = Header(None)):
 
 # ===== DASHBOARD =====
 @app.get("/dashboard")
-def dashboard(authorization: str = Header(None)):
-    user = get_user(authorization)
+def dashboard():
     return {
-        "credits":users.get(user,{}).get("credits",0),
-        "templates":list(templates.keys())
+        "credits": 100,
+        "templates": []
     }
 
 # ===== TEMPLATE MARKETPLACE =====
