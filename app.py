@@ -22,7 +22,7 @@ import paramiko
 # ===== PASSWORD SECURITY =====
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def hash_password(password):
+def hash_password(password: str):
     return pwd_context.hash(password)
 
 def verify_password(plain, hashed):
@@ -456,7 +456,8 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    return {"message": "Signup successful"}
+    return {"msg": "Signup successful"}
+
 
 @app.post("/login")
 def login(data: UserLogin, db: Session = Depends(get_db)):
@@ -470,8 +471,9 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
         return {"error": "Invalid password"}
 
     return {
-        "message": "Login successful",
-        "email": user.email
+        "msg": "Login successful",
+        "email": user.email,
+        "credits": user.credits
     }
 
 # ===== PAYMENT APIs =====

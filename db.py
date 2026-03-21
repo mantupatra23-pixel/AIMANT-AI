@@ -4,34 +4,54 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-# Get DATABASE_URL from Render
+# =========================
+# GET DATABASE URL
+# =========================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Fallback (local)
+# =========================
+# FALLBACK (LOCAL SQLITE)
+# =========================
 if not DATABASE_URL:
     DATABASE_URL = "sqlite:///./aimant.db"
 
-# Fix postgres URL
+# =========================
+# FIX POSTGRES (RENDER ISSUE)
+# =========================
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
 
-# Engine
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True
-)
+# =========================
+# ENGINE CONFIG
+# =========================
+if "sqlite" in DATABASE_URL:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True
+    )
 
-# Session
+# =========================
+# SESSION
+# =========================
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine
 )
 
-# Base (IMPORTANT)
+# =========================
+# BASE
+# =========================
 Base = declarative_base()
 
-# Dependency
+# =========================
+# DEPENDENCY
+# =========================
 def get_db():
     db = SessionLocal()
     try:
