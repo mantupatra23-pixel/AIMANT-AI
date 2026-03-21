@@ -23,6 +23,8 @@ from fastapi import Request
 import paramiko
 import datetime
 import jwt
+from supabase import create_client, Client
+
 
 # ===== PASSWORD SECURITY =====
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -34,13 +36,7 @@ def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
 
 # ===== PYDANTIC MODELS =====
-from pydantic import BaseModel
-
-class UserCreate(BaseModel):
-    email: str
-    password: str
-
-class UserLogin(BaseModel):
+class AuthSchema(BaseModel):
     email: str
     password: str
 
@@ -74,6 +70,10 @@ AWS_HOST = "your-ec2-ip"
 AWS_USER = "ubuntu"
 AWS_KEY = "/root/key.pem"   # path in server
 
+SUPABASE_URL = "PASTE_URL_HERE"
+SUPABASE_KEY = "PASTE_ANON_KEY_HERE
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ===== PLANS =====
 plans = {
@@ -453,47 +453,39 @@ def update_daily():
 
 # ===== AUTH =====
 @app.post("/signup")
-def signup(user: UserSchema, db: Session = Depends(get_db)):
+def signup(user: AuthSchema):
+    try:
+        res = supabase.auth.sign_up({
+            "email": user.email,
+            "password": user.password
+        })
 
-    existing = db.query(User).filter(User.email == user.email).first()
+        return {
+            "msg": "Signup successful"
+        }
 
-    if existing:
-        return {"error": "User already exists"}
-
-    new_user = User(
-        email=user.email,
-        password=hash_password(user.password),
-        credits=20
-    )
-
-    db.add(new_user)
-    db.commit()
-
-    token = create_token(user.email)
-
-    return {
-        "msg": "Signup successful",
-        "token": token
-    }
-
-class LoginSchema(BaseModel):
-    email: str
-    password: str
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
 
 @app.post("/login")
-def login(data: LoginSchema, db: Session = Depends(get_db)):
+def login(user: AuthSchema):
+    try:
+        res = supabase.auth.sign_in_with_password({
+            "email": user.email,
+            "password": user.password
+        })
 
-    user = db.query(User).filter(User.email == data.email).first()
+        return {
+            "msg": "Login successful",
+            "token": res.session.access_token
+        }
 
-    if not user:
-        return {"error": "User not found"}
-
-    if not verify_password(data.password, user.password):
-        return {"error": "Invalid password"}
-
-    token = create_token(user.email)
-
-    return {"token": token}
+    except:
+        return {
+            "error": "Invalid email or password"
+        }
 
 # ===== PAYMENT APIs =====
 @app.post("/create-order")
