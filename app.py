@@ -469,29 +469,31 @@ def signup(user: UserSchema, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
 
-    return {"msg": "Signup successful"}
-
-@app.post("/login")
-def login(user: dict, db: Session = Depends(get_db)):
-
-    email = user.get("email")
-    password = user.get("password")
-
-    db_user = db.query(User).filter(User.email == email).first()
-
-    if not db_user:
-        return {"error": "User not found"}
-
-    if not verify_password(password, db_user.password):
-        return {"error": "Invalid password"}
-
-    token = create_token({"email": db_user.email})
+    token = create_token(user.email)
 
     return {
-        "msg": "Login successful",
+        "msg": "Signup successful",
         "token": token
     }
 
+class LoginSchema(BaseModel):
+    email: str
+    password: str
+
+@app.post("/login")
+def login(data: LoginSchema, db: Session = Depends(get_db)):
+
+    user = db.query(User).filter(User.email == data.email).first()
+
+    if not user:
+        return {"error": "User not found"}
+
+    if not verify_password(data.password, user.password):
+        return {"error": "Invalid password"}
+
+    token = create_token(user.email)
+
+    return {"token": token}
 
 # ===== PAYMENT APIs =====
 @app.post("/create-order")
