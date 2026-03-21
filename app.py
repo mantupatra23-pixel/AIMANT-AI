@@ -6,7 +6,7 @@ import requests, time, uuid, jwt, os
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy.orm import Session
-from db import engine, Base, get_db
+from db import engine
 from models import User
 from fastapi import Depends
 from passlib.context import CryptContext
