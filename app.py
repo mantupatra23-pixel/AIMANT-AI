@@ -70,8 +70,8 @@ AWS_HOST = "your-ec2-ip"
 AWS_USER = "ubuntu"
 AWS_KEY = "/root/key.pem"   # path in server
 
-SUPABASE_URL ="https://xxxx.supabase.co"
-SUPABASE_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+SUPABASE_URL =os.getenv("SUPABASE_URL")
+SUPABASE_KEY =os.getenv("SUPABASE_KEY")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
