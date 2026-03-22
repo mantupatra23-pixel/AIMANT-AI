@@ -1,83 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mantu AI</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantu AI</title>
 
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background:#f5f5f5;
+}
 
-  <style>
-    body {
-      margin:0;
-      font-family: Arial;
-      background:#f5f5f5;
-    }
+.navbar {
+  display:flex;
+  justify-content:space-between;
+  padding:15px 25px;
+  background:white;
+}
 
-    .navbar {
-      display:flex;
-      justify-content:space-between;
-      padding:15px 25px;
-      background:white;
-      box-shadow:0 2px 10px rgba(0,0,0,0.1);
-    }
+button {
+  padding:8px 14px;
+  border:none;
+  cursor:pointer;
+  border-radius:6px;
+}
 
-    .right {
-      display:flex;
-      gap:10px;
-      align-items:center;
-    }
+.login-btn { background:black; color:white; }
+.logout-btn { background:red; color:white; }
 
-    button {
-      padding:8px 14px;
-      border:none;
-      cursor:pointer;
-      border-radius:6px;
-    }
+.center {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:85vh;
+}
 
-    .login-btn { background:black; color:white; }
-    .logout-btn { background:red; color:white; }
+.box {
+  width:90%;
+  max-width:420px;
+  background:white;
+  padding:25px;
+  border-radius:10px;
+  text-align:center;
+}
 
-    .center {
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      height:85vh;
-    }
+textarea {
+  width:100%;
+  height:100px;
+  margin-top:15px;
+}
 
-    .box {
-      width:90%;
-      max-width:420px;
-      background:white;
-      padding:25px;
-      border-radius:10px;
-      text-align:center;
-      box-shadow:0 10px 30px rgba(0,0,0,0.1);
-    }
-
-    textarea {
-      width:100%;
-      height:100px;
-      padding:10px;
-      margin-top:15px;
-      border-radius:8px;
-      border:1px solid #ccc;
-    }
-
-    .generate {
-      margin-top:15px;
-      background:#00c896;
-      color:white;
-    }
-  </style>
+.generate {
+  margin-top:15px;
+  background:#00c896;
+  color:white;
+}
+</style>
 </head>
 
 <body>
 
 <div class="navbar">
   <div>🚀 Mantu AI</div>
-  <div class="right" id="nav-right">
-    <button class="login-btn" onclick="login()">Login</button>
+  <div id="nav-right">
+    <button class="login-btn" onclick="goLogin()">Login</button>
   </div>
 </div>
 
@@ -85,66 +71,43 @@
   <div class="box">
     <h2>Build AI Apps in Seconds</h2>
     <textarea placeholder="Create AI app..."></textarea>
-    <br>
     <button class="generate">Generate 🚀</button>
   </div>
 </div>
 
-<script>
-const supabase = window.supabase.createClient(
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const supabase = createClient(
   "https://tajgxsdzjnnvoifcymdx.supabase.co",
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-// 🔥 LOGIN
-function login() {
-  supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: window.location.origin
-    }
-  });
-}
-
-// 🔥 LOGOUT
-function logout() {
-  supabase.auth.signOut();
-  localStorage.clear();
-  location.reload();
-}
-
-// 🔥 UPDATE UI
-function updateUI(user) {
-  document.getElementById("nav-right").innerHTML = `
-    <span>${user.email}</span>
-    <button class="logout-btn" onclick="logout()">Logout</button>
-  `;
-}
-
-// 🔥 AUTH STATE LISTENER (MAIN FIX)
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log("EVENT:", event);
-
-  if (session && session.user) {
-    updateUI(session.user);
-
-    // save token
-    localStorage.setItem("token", session.access_token);
-  }
-});
-
-// 🔥 PAGE LOAD CHECK (backup)
+// ✅ CHECK SESSION (FIXED)
 async function checkUser() {
   const { data: { session } } = await supabase.auth.getSession();
 
-  if (session && session.user) {
-    updateUI(session.user);
-    localStorage.setItem("token", session.access_token);
+  if (session) {
+    document.getElementById("nav-right").innerHTML = `
+      <span>${session.user.email}</span>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    `;
   }
 }
 
-// run after slight delay (mobile fix)
-setTimeout(checkUser, 500);
+// ✅ LOGOUT
+window.logout = async function () {
+  await supabase.auth.signOut();
+  location.reload();
+}
+
+// ✅ LOGIN PAGE REDIRECT
+window.goLogin = function () {
+  window.location.href = "login.html";
+}
+
+// AUTO RUN
+checkUser();
 </script>
 
 </body>

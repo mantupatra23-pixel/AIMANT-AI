@@ -1,188 +1,108 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mantu AI</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Login - Mantu AI</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-
-body{
-  font-family:Arial;
-  overflow:hidden;
-}
-
-/* 🎥 BACKGROUND VIDEO */
-video{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  z-index:-1;
-}
-
-/* 🌑 DARK OVERLAY */
-.overlay{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.5);
-  z-index:0;
-}
-
-/* 🚀 CENTER BOX */
-.container{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  z-index:2;
-}
-
-.box{
-  width:360px;
-  padding:30px;
-  border-radius:15px;
-  text-align:center;
-  backdrop-filter:blur(15px);
-  background:rgba(255,255,255,0.1);
-  box-shadow:0 10px 40px rgba(0,0,0,0.5);
+body {
+  margin:0;
+  font-family: Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  background:#111;
   color:white;
 }
 
-/* 🧠 TITLE */
-.box h2{
-  margin-bottom:20px;
+.box {
+  width:320px;
+  padding:25px;
+  background:#222;
+  border-radius:10px;
+  text-align:center;
 }
 
-/* INPUT */
-input{
+input {
   width:100%;
-  padding:12px;
+  padding:10px;
   margin:10px 0;
   border:none;
-  border-radius:8px;
-  outline:none;
+  border-radius:6px;
 }
 
-/* BUTTON */
-button{
+button {
   width:100%;
-  padding:12px;
-  border:none;
-  border-radius:8px;
+  padding:10px;
   margin-top:10px;
+  border:none;
+  border-radius:6px;
   cursor:pointer;
-  font-size:15px;
 }
 
-/* LOGIN BTN */
-.login{
-  background:#00c896;
-  color:white;
-}
+.login { background:#00c896; color:white; }
 
-/* GOOGLE BTN */
-.google{
+.google {
   background:white;
   color:black;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-}
-
-.google img{
-  width:20px;
-}
-
-/* LINK */
-a{
-  color:#00ffcc;
-  text-decoration:none;
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🎥 AI VIDEO BACKGROUND -->
-<video autoplay muted loop>
-  <source src="https://cdn.coverr.co/videos/coverr-ai-technology-5176/1080p.mp4" type="video/mp4">
-</video>
+<div class="box">
+  <h2>🚀 Mantu AI</h2>
 
-<div class="overlay"></div>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
 
-<!-- 🚀 LOGIN BOX -->
-<div class="container">
-  <div class="box">
-    <h2>🚀 Mantu AI</h2>
+  <button class="login" onclick="login()">Login</button>
 
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-
-    <button class="login" onclick="login()">Login</button>
-
-    <button class="google" onclick="googleLogin()">
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg">
-      Login with Google
-    </button>
-
-    <p style="margin-top:10px;">
-      <a href="signup.html">Create Account</a>
-    </p>
-  </div>
+  <button class="google" onclick="googleLogin()">Login with Google</button>
 </div>
 
-<script>
-const supabase = window.supabase.createClient(
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const supabase = createClient(
   "https://tajgxsdzjnnvoifcymdx.supabase.co",
-  "YOUR_ANON_KEY"
+  "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-/* ✅ EMAIL LOGIN */
-async function login(){
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
+// ✅ EMAIL LOGIN
+window.login = async function () {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,password
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
   });
 
-  if(error){
+  if (error) {
     alert(error.message);
   } else {
-    localStorage.setItem("token", data.session.access_token);
-    window.location.href="dashboard.html";
+    window.location.href = "index.html";
   }
-}
+};
 
-/* ✅ GOOGLE LOGIN */
-function googleLogin(){
-  supabase.auth.signInWithOAuth({
-    provider:"google",
-    options:{
-      redirectTo: window.location.origin + "/dashboard.html"
+// ✅ GOOGLE LOGIN (FIXED)
+window.googleLogin = async function () {
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin
     }
   });
+};
+
+// ✅ AUTO REDIRECT AFTER LOGIN (VERY IMPORTANT FIX)
+const { data: { session } } = await supabase.auth.getSession();
+if (session) {
+  window.location.href = "index.html";
 }
-
-/* ✅ AUTO LOGIN */
-(async ()=>{
-  const { data:{ session } } = await supabase.auth.getSession();
-
-  if(session){
-    localStorage.setItem("token", session.access_token);
-    window.location.href="dashboard.html";
-  }
-})();
 </script>
 
 </body>
