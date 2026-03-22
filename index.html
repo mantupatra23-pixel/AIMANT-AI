@@ -1,82 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Mantu AI</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #f2f2f2;
-      text-align: center;
-    }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantu AI</title>
 
-    .box {
-      width: 90%;
-      max-width: 400px;
-      margin: 150px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    }
+<style>
+body {
+  margin:0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg,#f8fafc,#e2e8f0);
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
 
-    textarea {
-      width: 100%;
-      height: 100px;
-      margin-top: 10px;
-      padding: 10px;
-    }
+/* MAIN BOX */
+.container {
+  width:90%;
+  max-width:500px;
+  background:white;
+  padding:30px;
+  border-radius:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.1);
+  text-align:center;
+  animation:fadeIn 0.6s ease;
+}
 
-    button {
-      margin-top: 10px;
-      padding: 10px;
-      background: #00cc99;
-      border: none;
-      color: white;
-      width: 100%;
-      cursor: pointer;
-    }
+@keyframes fadeIn {
+  from {opacity:0; transform:translateY(20px);}
+  to {opacity:1; transform:translateY(0);}
+}
 
-    pre {
-      text-align: left;
-      background: #111;
-      color: #0f0;
-      padding: 10px;
-      margin-top: 10px;
-      overflow: auto;
-    }
-  </style>
+h1 {
+  margin-bottom:5px;
+}
+
+.sub {
+  color:#64748b;
+  font-size:14px;
+  margin-bottom:20px;
+}
+
+/* TEXTAREA */
+textarea {
+  width:100%;
+  height:120px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #ddd;
+  font-size:14px;
+  resize:none;
+  outline:none;
+  transition:0.3s;
+}
+
+textarea:focus {
+  border-color:#00c896;
+  box-shadow:0 0 0 3px rgba(0,200,150,0.1);
+}
+
+/* BUTTON */
+button {
+  width:100%;
+  margin-top:15px;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  background:#00c896;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+button:hover {
+  background:#00b383;
+  transform:translateY(-1px);
+}
+
+/* LOADER */
+.loader {
+  margin-top:15px;
+  font-size:14px;
+  color:#555;
+}
+
+/* OUTPUT */
+.output {
+  margin-top:15px;
+  background:#111;
+  color:#0f0;
+  padding:12px;
+  border-radius:10px;
+  text-align:left;
+  height:150px;
+  overflow:auto;
+  font-size:13px;
+}
+</style>
 </head>
 
 <body>
 
-<h2>🚀 Mantu AI</h2>
+<div class="container">
+  <h1>🚀 Mantu AI</h1>
+  <div class="sub">Build AI Apps in Seconds</div>
 
-<div class="box">
-  <h3>Build AI Apps in Seconds</h3>
+  <textarea id="idea" placeholder="Describe your AI app idea..."></textarea>
 
-  <textarea id="prompt" placeholder="Create AI app..."></textarea>
+  <button onclick="generateApp()">Generate App ⚡</button>
 
-  <button onclick="generate()">Generate</button>
-
-  <pre id="output"></pre>
+  <div id="loader" class="loader"></div>
+  <div id="output" class="output"></div>
 </div>
 
 <script>
-async function generate() {
-  let prompt = document.getElementById("prompt").value;
+async function generateApp(){
+  const idea = document.getElementById("idea").value;
 
-  let res = await fetch("https://aimant-ai.onrender.com/generate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ prompt })
-  });
+  if(!idea){
+    alert("Enter idea first");
+    return;
+  }
 
-  let data = await res.json();
+  document.getElementById("loader").innerText = "⚡ Generating...";
+  document.getElementById("output").innerText = "";
+
+  try{
+    const res = await fetch("/generate",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({idea})
+    });
+
+    const data = await res.json();
+
+    if(data.build_id){
+      document.getElementById("loader").innerText = "🚀 Building project...";
+      checkStatus(data.build_id);
+    } else {
+      document.getElementById("loader").innerText = "❌ Failed";
+      document.getElementById("output").innerText = JSON.stringify(data,null,2);
+    }
+
+  }catch(e){
+    document.getElementById("loader").innerText = "❌ Server Error";
+  }
+}
+
+/* 🔥 STATUS CHECK */
+async function checkStatus(bid){
+  const res = await fetch(`/status/${bid}`);
+  const data = await res.json();
 
   document.getElementById("output").innerText =
-    data.result || JSON.stringify(data, null, 2);
+    "Status: " + data.status + "\n\n" +
+    (data.logs ? data.logs.join("\n") : "");
+
+  if(data.status !== "live"){
+    setTimeout(()=>checkStatus(bid),3000);
+  }else{
+    document.getElementById("loader").innerText = "✅ LIVE READY";
+
+    document.getElementById("output").innerText +=
+      "\n\n🚀 LIVE URL:\n" + data.deployment_url;
+  }
 }
 </script>
 

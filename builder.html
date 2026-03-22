@@ -1,60 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>AI Builder</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantu AI Builder</title>
 
 <style>
-body {
-    margin:0;
-    font-family:Arial;
-    display:flex;
-    height:100vh;
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  display:flex;
+  height:100vh;
+  background:#f8fafc;
 }
 
 /* LEFT PANEL */
-.left {
-    width:40%;
-    padding:20px;
-    border-right:1px solid #eee;
+.left{
+  width:35%;
+  background:white;
+  padding:25px;
+  border-right:1px solid #eee;
 }
 
-textarea {
-    width:100%;
-    height:100px;
-    padding:10px;
+.left h2{
+  margin-bottom:15px;
 }
 
-button {
-    padding:10px 20px;
-    background:black;
-    color:white;
-    border:none;
-    margin-top:10px;
+textarea{
+  width:100%;
+  height:180px;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  outline:none;
+}
+
+button{
+  margin-top:15px;
+  padding:12px;
+  width:100%;
+  border:none;
+  border-radius:10px;
+  background:#00c896;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#00b383;
 }
 
 /* RIGHT PANEL */
-.right {
-    flex:1;
-    display:flex;
-    flex-direction:column;
+.right{
+  flex:1;
+  display:flex;
+  flex-direction:column;
 }
 
-.logs {
-    height:40%;
-    overflow:auto;
-    border-bottom:1px solid #eee;
-    padding:10px;
-    background:#fafafa;
+/* LOGS */
+.logs{
+  height:40%;
+  background:#111;
+  color:#00ff88;
+  padding:15px;
+  overflow:auto;
+  font-size:13px;
 }
 
-.preview {
-    flex:1;
+/* PREVIEW */
+.preview{
+  flex:1;
+  background:white;
 }
 
-iframe {
-    width:100%;
-    height:100%;
-    border:none;
+iframe{
+  width:100%;
+  height:100%;
+  border:none;
 }
 </style>
 </head>
@@ -63,61 +85,107 @@ iframe {
 
 <!-- LEFT -->
 <div class="left">
-    <h2>⚡ AI Builder</h2>
+  <h2>🧠 Mantu AI Builder</h2>
 
-    <textarea id="idea" placeholder="Enter your idea..."></textarea>
+  <textarea id="prompt" placeholder="Describe changes..."></textarea>
 
-    <button onclick="build()">Generate</button>
+  <button onclick="edit()">Update App 🚀</button>
 </div>
 
 <!-- RIGHT -->
 <div class="right">
-    <div class="logs" id="logs">Logs...</div>
-    <div class="preview">
-        <iframe id="frame"></iframe>
-    </div>
+
+  <div class="logs" id="logs">
+    Logs will appear here...
+  </div>
+
+  <div class="preview">
+    <iframe id="frame"></iframe>
+  </div>
+
 </div>
 
-<script>
-let current_id = null;
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-async function build(){
-    let idea = document.getElementById("idea").value;
+const supabase = createClient(
+  "https://tajgxsdzjnnvoifcymdx.supabase.co",
+  "YOUR_ANON_KEY"
+);
 
-    let res = await fetch("/build", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({idea})
-    });
+// SESSION CHECK
+const { data: { session } } = await supabase.auth.getSession();
 
-    let data = await res.json();
-    current_id = data.build_id;
-
-    log("🚀 Build started: " + current_id);
-
-    check();
+if (!session) {
+  alert("Login required");
+  window.location.href = "login.html";
 }
 
+const token = session.access_token;
+
+let current_id = localStorage.getItem("build_id");
+
+// LOG FUNCTION
 function log(msg){
-    document.getElementById("logs").innerHTML += "<br>" + msg;
+  document.getElementById("logs").innerHTML += "<div>👉 "+msg+"</div>";
 }
 
+// 🚀 UPDATE APP
+window.edit = async function(){
+
+  let prompt = document.getElementById("prompt").value;
+
+  if(!prompt){
+    alert("Enter prompt");
+    return;
+  }
+
+  let res = await fetch("https://aimant-ai.onrender.com/ai-edit",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+token
+    },
+    body:JSON.stringify({
+      build_id: current_id,
+      prompt: prompt
+    })
+  });
+
+  let data = await res.json();
+
+  log("🚀 Update sent...");
+  check();
+};
+
+// 🔍 CHECK STATUS
 async function check(){
-    if(!current_id) return;
 
-    let res = await fetch("/build-status/" + current_id);
-    let data = await res.json();
+  if(!current_id) return;
 
-    log("⏳ " + data.status);
-
-    if(data.status === "done"){
-        log("✅ Done");
-
-        document.getElementById("frame").src = "/preview/" + current_id;
-    } else {
-        setTimeout(check, 2000);
+  let res = await fetch(`https://aimant-ai.onrender.com/status/${current_id}`,{
+    headers:{
+      "Authorization":"Bearer "+token
     }
+  });
+
+  let data = await res.json();
+
+  log("⏳ "+data.status);
+
+  if(data.status === "live"){
+    log("✅ App Ready!");
+
+    document.getElementById("frame").src = data.deployment_url;
+
+  }else{
+    setTimeout(check,2000);
+  }
 }
+
+// AUTO LOAD
+check();
+
 </script>
 
 </body>

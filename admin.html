@@ -1,109 +1,176 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Admin Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantu AI Admin</title>
 
 <style>
 body{
-    margin:0;
-    font-family:Arial;
-    background:#f9fafb;
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:#f8fafc;
 }
 
+/* HEADER */
 .header{
-    background:black;
-    color:white;
-    padding:15px;
-    font-size:20px;
+  padding:20px;
+  background:white;
+  border-bottom:1px solid #eee;
+  font-size:20px;
+  font-weight:bold;
 }
 
+/* CONTAINER */
 .container{
-    padding:20px;
+  padding:20px;
+}
+
+/* CARDS */
+.cards{
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
 }
 
 .card{
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    margin-bottom:15px;
-    border:1px solid #eee;
+  flex:1;
+  min-width:200px;
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.05);
 }
 
+/* USERS */
+.user{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  margin-top:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* BUTTON */
 button{
-    background:red;
-    color:white;
-    border:none;
-    padding:8px 12px;
-    border-radius:6px;
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  background:#ef4444;
+  color:white;
+  cursor:pointer;
+}
+
+.refresh{
+  background:#22c55e;
+  margin-bottom:15px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">👑 Admin Panel</div>
+<div class="header">👑 Mantu AI Admin Panel</div>
 
 <div class="container">
 
+  <button class="refresh" onclick="load()">🔄 Refresh Data</button>
+
+  <!-- STATS -->
+  <div class="cards">
     <div class="card">
-        <h3>📊 Stats</h3>
-        <div id="stats"></div>
+      <h3>👥 Users</h3>
+      <h2 id="usersCount">0</h2>
     </div>
 
     <div class="card">
-        <h3>👥 Users</h3>
-        <div id="users"></div>
+      <h3>🚀 Projects</h3>
+      <h2 id="projectsCount">0</h2>
     </div>
+
+    <div class="card">
+      <h3>💰 Revenue</h3>
+      <h2 id="revenueCount">₹0</h2>
+    </div>
+  </div>
+
+  <h3 style="margin-top:30px;">📋 Users List</h3>
+  <div id="usersList"></div>
 
 </div>
 
 <script>
+
 const token = localStorage.getItem("token");
 
-// protect route
+// 🔐 PROTECT
 if(!token){
-    window.location.href = "/auth.html";
+  alert("Login required");
+  window.location.href = "/auth.html";
 }
 
-// load stats
-fetch("/admin/stats",{
-    headers:{Authorization:token}
-})
-.then(res=>res.json())
-.then(data=>{
-    document.getElementById("stats").innerHTML =
-        "Users: "+data.users+"<br>" +
-        "Projects: "+data.projects+"<br>" +
-        "Revenue: ₹"+data.revenue;
-});
+// 🚀 LOAD ALL DATA
+async function load(){
 
-// load users
-fetch("/admin/users",{
+  // STATS
+  let statsRes = await fetch("https://aimant-ai.onrender.com/admin/stats",{
     headers:{Authorization:token}
-})
-.then(res=>res.json())
-.then(users=>{
-    let html="";
-    users.forEach(u=>{
-        html+=`
-        <div>
-            ${u.email} 
-            <button onclick="block('${u.email}')">Block</button>
-        </div>`;
-    });
-    document.getElementById("users").innerHTML=html;
-});
+  });
 
-function block(email){
-    fetch("/admin/block-user",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json",
-            "Authorization":token
-        },
-        body:JSON.stringify({email})
-    }).then(()=>location.reload());
+  let stats = await statsRes.json();
+
+  document.getElementById("usersCount").innerText = stats.users;
+  document.getElementById("projectsCount").innerText = stats.projects;
+  document.getElementById("revenueCount").innerText = "₹" + stats.revenue;
+
+
+  // USERS
+  let usersRes = await fetch("https://aimant-ai.onrender.com/admin/users",{
+    headers:{Authorization:token}
+  });
+
+  let users = await usersRes.json();
+
+  let html = "";
+
+  users.forEach(u=>{
+    html += `
+      <div class="user">
+        <span>${u.email}</span>
+        <button onclick="block('${u.email}')">Block</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("usersList").innerHTML = html;
+
 }
+
+
+// 🚫 BLOCK USER
+async function block(email){
+
+  if(!confirm("Block user?")) return;
+
+  await fetch("https://aimant-ai.onrender.com/admin/block-user",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":token
+    },
+    body:JSON.stringify({email})
+  });
+
+  alert("User Blocked");
+  load();
+}
+
+
+// LOAD INIT
+load();
+
 </script>
 
 </body>

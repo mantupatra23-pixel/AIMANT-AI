@@ -1,22 +1,126 @@
 <!DOCTYPE html>
-<html>
-<body style="font-family:Arial; padding:40px;">
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantu AI - Domain</title>
 
-<h2>🌐 Add Custom Domain</h2>
+<style>
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:#f8fafc;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
 
-<input id="domain" placeholder="yourdomain.com" style="padding:10px;">
-<button onclick="add()">Add</button>
+/* CARD */
+.box{
+  width:350px;
+  background:white;
+  padding:30px;
+  border-radius:15px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.08);
+  text-align:center;
+}
+
+/* TITLE */
+h2{
+  margin-bottom:10px;
+}
+
+.sub{
+  color:gray;
+  font-size:14px;
+  margin-bottom:20px;
+}
+
+/* INPUT */
+input{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  outline:none;
+  font-size:14px;
+}
+
+/* BUTTON */
+button{
+  width:100%;
+  padding:12px;
+  margin-top:15px;
+  background:#22c55e;
+  border:none;
+  border-radius:10px;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+/* STATUS */
+.status{
+  margin-top:15px;
+  font-size:14px;
+}
+.success{color:green;}
+.error{color:red;}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>🌍 Add Domain</h2>
+  <div class="sub">Connect your custom domain to Mantu AI</div>
+
+  <input id="domain" placeholder="example.com">
+
+  <button onclick="addDomain()">Add Domain 🚀</button>
+
+  <div id="status" class="status"></div>
+</div>
 
 <script>
-async function add(){
-    let domain = document.getElementById("domain").value;
+async function addDomain(){
 
-    let res = await fetch("/add-domain?bid=latest&domain=" + domain, {
-        method:"POST"
+  let id = localStorage.getItem("build_id");
+  let domain = document.getElementById("domain").value;
+  let status = document.getElementById("status");
+
+  if(!domain){
+    status.innerHTML = "❌ Enter domain first";
+    status.className = "status error";
+    return;
+  }
+
+  status.innerHTML = "⏳ Connecting...";
+  status.className = "status";
+
+  try{
+    let res = await fetch("https://aimant-ai.onrender.com/add-domain",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer test"
+      },
+      body:JSON.stringify({
+        bid:id,
+        domain:domain
+      })
     });
 
     let data = await res.json();
-    alert(data.msg);
+
+    status.innerHTML = "✅ Domain added successfully!";
+    status.className = "status success";
+
+  }catch(e){
+    status.innerHTML = "❌ Error adding domain";
+    status.className = "status error";
+  }
+
 }
 </script>
 

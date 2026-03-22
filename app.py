@@ -119,7 +119,9 @@ def get_memory(user):
 
 # ===== LOG =====
 def log(bid, msg):
-    builds[bid]["logs"].append(f"{time.strftime('%H:%M:%S')} - {msg}")
+    if bid not in builds:
+        return
+    builds[bid]["logs"].append(msg)
 
 # ===== AI =====
 def call_groq(messages):
@@ -411,6 +413,56 @@ def login(user: dict):
         return {
             "msg": "Login successful",
             "token": res.session.access_token
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+# ===== GLOBAL STORAGE =====
+builds = {}
+deployments = {}
+stats = {"users": 0, "projects": 0, "revenue": 0}
+daily_stats = []
+
+# ===== GENERATE API =====
+@app.post("/generate")
+def generate(data: dict, Authorization: str = Header(None)):
+    try:
+        idea = data.get("idea")
+        if not idea:
+            return {"error": "Idea required"}
+
+        bid = str(uuid.uuid4())[:8]
+
+        user = get_user(Authorization)
+
+        builds[bid] = {
+            "id": bid,
+            "idea": idea,
+            "status": "building",
+            "logs": [],
+            "data": {},
+            "user": user
+        }
+
+        log(bid, "🚀 Starting AI build...")
+
+        # AI build
+        result = fast_build(idea)
+
+        builds[bid]["data"] = result
+        builds[bid]["status"] = "deploying"
+
+        log(bid, "⚡ Build complete, deploying...")
+
+        # deploy async
+        auto_deploy(bid)
+
+        stats["projects"] += 1
+
+        return {
+            "msg": "Build started",
+            "build_id": bid
         }
 
     except Exception as e:
@@ -997,9 +1049,30 @@ def create_order(amount: int):
     })
     return order
 
+# 👉 YAHAN ADD KARNA HAI 👇
+
+@app.get("/status/{bid}")
+def get_status(bid: str):
+    if bid not in builds:
+        return {"error": "Invalid build id"}
+
+    return {
+        "status": builds[bid]["status"],
+        "logs": builds[bid]["logs"],
+        "deployment": deployments.get(bid)
+    }
+
 @app.get("/")
 def home():
     return {"msg": "Aimant AI Backend Running 🚀"}
+
+@app.get("/admin-analytics")
+def analytics():
+    return {
+        "users": 120,
+        "projects": 45,
+        "revenue": 23000
+    }
 
 # ===== RUN =====
 if __name__ == "__main__":

@@ -1,96 +1,181 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Billing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantu AI Billing</title>
 
 <style>
-body {
-    font-family: Arial;
-    background: #f9fafb;
-    padding: 20px;
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:#f8fafc;
 }
 
-.plans {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
+/* HEADER */
+.header{
+  padding:20px;
+  background:white;
+  border-bottom:1px solid #eee;
+  font-weight:bold;
 }
 
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid #eee;
-    width: 250px;
-    text-align: center;
+/* CONTAINER */
+.container{
+  padding:20px;
+  text-align:center;
 }
 
-button {
-    margin-top: 10px;
-    padding: 10px;
-    background: black;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
+/* PLANS */
+.plans{
+  display:flex;
+  gap:20px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-top:30px;
+}
+
+/* CARD */
+.card{
+  width:260px;
+  background:white;
+  padding:25px;
+  border-radius:15px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.05);
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:translateY(-5px);
+}
+
+/* TITLE */
+.card h3{
+  margin-bottom:10px;
+}
+
+/* PRICE */
+.price{
+  font-size:24px;
+  font-weight:bold;
+  margin:10px 0;
+}
+
+/* BUTTON */
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#22c55e;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+/* STATUS */
+.status{
+  margin-top:20px;
+  font-size:14px;
 }
 </style>
-
 </head>
 
 <body>
 
-<h2>💰 Choose Plan</h2>
+<div class="header">💳 Mantu AI Billing</div>
 
-<div class="plans" id="plansContainer">
-    <!-- Plans will come from backend -->
+<div class="container">
+
+  <h2>Choose Your Plan 🚀</h2>
+
+  <div id="plansContainer" class="plans"></div>
+
+  <div id="status" class="status"></div>
+
 </div>
 
 <script>
 
-// 🔥 Plans dynamic load (NOT FIXED)
-async function loadPlans() {
-    let res = await fetch("/get-plans");
-    let plans = await res.json();
+// 🔥 LOAD PLANS FROM BACKEND
+async function loadPlans(){
 
-    let container = document.getElementById("plansContainer");
-    container.innerHTML = "";
+  let res = await fetch("https://aimant-ai.onrender.com/get-plans");
+  let plans = await res.json();
 
-    plans.forEach(p => {
-        container.innerHTML += `
-            <div class="card">
-                <h3>${p.name}</h3>
-                <p>₹${p.price}</p>
-                <button onclick="buy('${p.id}')">Buy</button>
-            </div>
-        `;
-    });
+  let container = document.getElementById("plansContainer");
+  container.innerHTML = "";
+
+  plans.forEach(p=>{
+    container.innerHTML += `
+      <div class="card">
+        <h3>${p.name}</h3>
+        <div class="price">₹${p.price}</div>
+        <p>${p.desc || "Best for creators"}</p>
+        <button onclick="buy('${p.id}', ${p.price})">Buy Now</button>
+      </div>
+    `;
+  });
+
 }
 
-// 🔥 BUY FUNCTION (with Authorization header)
-async function buy(plan) {
-    let res = await fetch("/create-order", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": localStorage.getItem("token")
-        },
-        body: JSON.stringify({ plan })
+
+// 🔥 BUY PLAN
+async function buy(planId, amount){
+
+  let status = document.getElementById("status");
+  status.innerHTML = "⏳ Creating order...";
+
+  try{
+
+    let res = await fetch("https://aimant-ai.onrender.com/create-order",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": localStorage.getItem("token")
+      },
+      body:JSON.stringify({
+        plan: planId,
+        amount: amount
+      })
     });
 
     let data = await res.json();
 
-    if(data.order_id){
-        alert("Order Created: " + data.order_id);
-    } else {
-        alert("Error: " + data.message);
+    if(!data.order_id){
+      status.innerHTML = "❌ Order failed";
+      return;
     }
+
+    // 🔥 Razorpay Payment
+    let options = {
+      key: "rzp_test_ABC123XYZ",
+      amount: amount * 100,
+      currency: "INR",
+      name: "Mantu AI",
+      description: "Premium Plan",
+      order_id: data.order_id,
+
+      handler: function (response){
+        status.innerHTML = "✅ Payment Success!";
+      }
+    };
+
+    let rzp = new Razorpay(options);
+    rzp.open();
+
+  }catch(e){
+    status.innerHTML = "❌ Error";
+  }
+
 }
 
-// page load
+// LOAD
 loadPlans();
 
 </script>
+
+<!-- Razorpay -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 </body>
 </html>

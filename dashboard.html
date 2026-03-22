@@ -1,101 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aimant AI Dashboard</title>
+<title>Mantu AI Dashboard</title>
 
 <style>
-body {
+body{
   margin:0;
-  font-family:Arial;
+  font-family:'Segoe UI',sans-serif;
+  background:#f8fafc;
   display:flex;
-  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  color:white;
 }
 
 /* SIDEBAR */
-.sidebar {
-  width:220px;
+.sidebar{
+  width:240px;
   height:100vh;
-  background:#111;
+  background:white;
   padding:20px;
+  box-shadow:2px 0 20px rgba(0,0,0,0.05);
 }
 
-.logo {
+.logo{
   font-size:22px;
   font-weight:bold;
   margin-bottom:30px;
 }
 
-.menu a {
+.menu a{
   display:block;
-  color:#ccc;
+  padding:12px;
+  margin-bottom:10px;
+  border-radius:8px;
   text-decoration:none;
-  padding:10px;
+  color:#333;
 }
 
-.menu a:hover {
-  background:#222;
+.menu a:hover{
+  background:#00c896;
   color:white;
 }
 
 /* MAIN */
-.main {
+.main{
   flex:1;
   padding:25px;
 }
 
 /* CARDS */
-.cards {
+.cards{
   display:flex;
   gap:20px;
-  margin-bottom:20px;
+  flex-wrap:wrap;
 }
 
-.card {
+.card{
   flex:1;
-  background:rgba(255,255,255,0.1);
+  min-width:150px;
+  background:white;
   padding:20px;
   border-radius:12px;
-  backdrop-filter: blur(10px);
-  animation:fade 1s ease;
-}
-
-@keyframes fade {
-  from {opacity:0; transform:translateY(20px);}
-  to {opacity:1; transform:translateY(0);}
+  box-shadow:0 10px 30px rgba(0,0,0,0.05);
 }
 
 /* BUILD BOX */
-.build-box {
-  background:rgba(255,255,255,0.1);
+.build-box{
+  margin-top:20px;
+  background:white;
   padding:20px;
   border-radius:12px;
-  margin-bottom:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.05);
 }
 
-input {
-  padding:10px;
+input{
   width:70%;
-  border:none;
-  border-radius:8px;
-}
-
-button {
-  padding:10px 20px;
-  border:none;
-  background:#00ffcc;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-#projectList div {
-  margin-top:10px;
-  background:#111;
   padding:10px;
   border-radius:8px;
+  border:1px solid #ddd;
+}
+
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:8px;
+  background:#00c896;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#00b383;
+}
+
+/* PROJECT LIST */
+.project{
+  margin-top:10px;
+  padding:15px;
+  background:#111;
+  color:#0f0;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -104,17 +107,19 @@ button {
 
 <!-- SIDEBAR -->
 <div class="sidebar">
-  <div class="logo">🚀 Aimant AI</div>
+  <div class="logo">🚀 Mantu AI</div>
+
   <div class="menu">
     <a href="#">Dashboard</a>
     <a href="#">Projects</a>
+    <a href="#" onclick="logout()">Logout</a>
   </div>
 </div>
 
 <!-- MAIN -->
 <div class="main">
 
-  <!-- CARDS -->
+  <!-- STATS -->
   <div class="cards">
     <div class="card">Projects: <b id="projects">0</b></div>
     <div class="card">Revenue: ₹<b id="revenue">0</b></div>
@@ -123,21 +128,21 @@ button {
 
   <!-- BUILD -->
   <div class="build-box">
-    <h3>Create Project</h3>
-    <input id="idea" placeholder="Enter idea...">
-    <button onclick="build()">Build</button>
+    <h3>Create AI App</h3>
+    <input id="idea" placeholder="Enter your AI idea...">
+    <button onclick="build()">Build 🚀</button>
   </div>
 
+  <!-- PROJECT LIST -->
   <div id="projectList"></div>
 
 </div>
 
-<!-- SCRIPT -->
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
 const supabase = createClient(
-  "https://YOUR_PROJECT.supabase.co",
+  "https://tajgxsdzjnnvoifcymdx.supabase.co",
   "YOUR_ANON_KEY"
 );
 
@@ -149,74 +154,94 @@ if (!session) {
   window.location.href = "login.html";
 }
 
-// ✅ TOKEN
+// TOKEN
 const token = session.access_token;
 
-// 🚀 LOAD DASHBOARD
-fetch("https://aimant-ai.onrender.com/dashboard", {
-  headers: {
-    "Authorization": "Bearer " + token
+// LOAD DASHBOARD DATA
+fetch("https://aimant-ai.onrender.com/dashboard",{
+  headers:{
+    "Authorization":"Bearer "+token
   }
 })
-.then(res => res.json())
-.then(data => {
-  document.getElementById("credits").innerText = data.credits || 0;
+.then(res=>res.json())
+.then(data=>{
   document.getElementById("projects").innerText = data.projects || 0;
   document.getElementById("revenue").innerText = data.revenue || 0;
+  document.getElementById("credits").innerText = data.credits || 0;
 })
-.catch(() => alert("Error loading data"));
+.catch(()=>alert("Error loading dashboard"));
 
 // 🚀 BUILD PROJECT
-window.build = async function() {
+window.build = async function(){
   let idea = document.getElementById("idea").value;
 
-  if (!idea) {
+  if(!idea){
     alert("Enter idea");
     return;
   }
 
-  let res = await fetch("https://aimant-ai.onrender.com/start-build", {
+  let res = await fetch("https://aimant-ai.onrender.com/generate",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
-      "Authorization":"Bearer " + token
+      "Authorization":"Bearer "+token
     },
-    body: JSON.stringify({ idea })
+    body:JSON.stringify({idea})
   });
 
   let data = await res.json();
 
-  addProject(data.build_id);
+  if(data.build_id){
+    addProject(data.build_id);
+  }else{
+    alert("Error creating project");
+  }
 };
 
-// ➕ ADD PROJECT
-function addProject(id) {
+// ADD PROJECT UI
+function addProject(id){
   let div = document.createElement("div");
 
+  div.className = "project";
   div.innerHTML = `
-    Project ${id}
-    <button onclick="check('${id}')">Check</button>
+    Project ID: ${id}
+    <br><br>
+    <button onclick="check('${id}')">Check Status</button>
   `;
 
   document.getElementById("projectList").appendChild(div);
 }
 
 // 🔍 CHECK STATUS
-window.check = async function(id) {
-  let res = await fetch(`https://aimant-ai.onrender.com/status/${id}`, {
-    headers: {
-      "Authorization":"Bearer " + token
+window.check = async function(id){
+  let res = await fetch(`https://aimant-ai.onrender.com/status/${id}`,{
+    headers:{
+      "Authorization":"Bearer "+token
     }
   });
 
   let data = await res.json();
 
-  if (data.status === "done") {
-    alert("✅ Ready!");
-  } else {
+  if(data.status === "live"){
+    alert("✅ LIVE READY");
+
+    let link = document.createElement("a");
+    link.href = data.deployment_url;
+    link.target = "_blank";
+    link.innerHTML = "<br><button>Open App 🚀</button>";
+
+    document.getElementById("projectList").appendChild(link);
+
+  }else{
     alert("⏳ Still building...");
   }
 };
+
+// LOGOUT
+window.logout = async function(){
+  await supabase.auth.signOut();
+  window.location.href = "login.html";
+}
 </script>
 
 </body>
