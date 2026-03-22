@@ -5,85 +5,108 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mantu AI</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  overflow: hidden;
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+  font-family:Arial;
+  overflow:hidden;
 }
 
-/* 🎥 VIDEO BACKGROUND */
-video {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: -1;
+/* 🎥 BACKGROUND VIDEO */
+video{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:-1;
 }
 
-/* 🔥 GLASS EFFECT BOX */
-.box {
-  width: 350px;
-  padding: 30px;
-  border-radius: 15px;
-  text-align: center;
-  backdrop-filter: blur(12px);
-  background: rgba(255,255,255,0.15);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-  color: white;
+/* 🌑 DARK OVERLAY */
+.overlay{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
+  z-index:0;
 }
 
-h2 {
-  margin-bottom: 20px;
+/* 🚀 CENTER BOX */
+.container{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  z-index:2;
+}
+
+.box{
+  width:360px;
+  padding:30px;
+  border-radius:15px;
+  text-align:center;
+  backdrop-filter:blur(15px);
+  background:rgba(255,255,255,0.1);
+  box-shadow:0 10px 40px rgba(0,0,0,0.5);
+  color:white;
+}
+
+/* 🧠 TITLE */
+.box h2{
+  margin-bottom:20px;
 }
 
 /* INPUT */
-input {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: none;
-  outline: none;
+input{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border:none;
+  border-radius:8px;
+  outline:none;
 }
 
 /* BUTTON */
-button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 15px;
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  margin-top:10px;
+  cursor:pointer;
+  font-size:15px;
 }
 
-/* LOGIN */
-.login {
-  background: #00c896;
-  color: white;
+/* LOGIN BTN */
+.login{
+  background:#00c896;
+  color:white;
 }
 
-/* GOOGLE BUTTON */
-.google {
-  background: white;
-  color: black;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+/* GOOGLE BTN */
+.google{
+  background:white;
+  color:black;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+.google img{
+  width:20px;
 }
 
 /* LINK */
-a {
-  color: #00ffcc;
-  text-decoration: none;
+a{
+  color:#00ffcc;
+  text-decoration:none;
 }
 </style>
 </head>
@@ -92,70 +115,74 @@ a {
 
 <!-- 🎥 AI VIDEO BACKGROUND -->
 <video autoplay muted loop>
-  <source src="https://cdn.coverr.co/videos/coverr-working-on-ai-technology-5176/1080p.mp4" type="video/mp4">
+  <source src="https://cdn.coverr.co/videos/coverr-ai-technology-5176/1080p.mp4" type="video/mp4">
 </video>
 
-<!-- 🔥 LOGIN BOX -->
-<div class="box">
-  <h2>🚀 Mantu AI</h2>
+<div class="overlay"></div>
 
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
+<!-- 🚀 LOGIN BOX -->
+<div class="container">
+  <div class="box">
+    <h2>🚀 Mantu AI</h2>
 
-  <button class="login" onclick="login()">Login</button>
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
 
-  <!-- GOOGLE BUTTON WITH ICON -->
-  <button class="google" onclick="googleLogin()">
-    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
-    Login with Google
-  </button>
+    <button class="login" onclick="login()">Login</button>
 
-  <p><a href="signup.html">Create Account</a></p>
+    <button class="google" onclick="googleLogin()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg">
+      Login with Google
+    </button>
+
+    <p style="margin-top:10px;">
+      <a href="signup.html">Create Account</a>
+    </p>
+  </div>
 </div>
 
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
-const supabase = createClient(
+<script>
+const supabase = window.supabase.createClient(
   "https://tajgxsdzjnnvoifcymdx.supabase.co",
-  "PASTE_YOUR_REAL_ANON_KEY"
+  "YOUR_ANON_KEY"
 );
 
-/* EMAIL LOGIN */
-window.login = async function () {
+/* ✅ EMAIL LOGIN */
+async function login(){
   let email = document.getElementById("email").value;
   let password = document.getElementById("password").value;
 
-  let { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,password
   });
 
-  if (error) {
+  if(error){
     alert(error.message);
   } else {
     localStorage.setItem("token", data.session.access_token);
-    window.location.href = "dashboard.html";
+    window.location.href="dashboard.html";
   }
-};
+}
 
-/* GOOGLE LOGIN */
-window.googleLogin = async function () {
-  await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: "https://aimant-ai.onrender.com/dashboard.html"
+/* ✅ GOOGLE LOGIN */
+function googleLogin(){
+  supabase.auth.signInWithOAuth({
+    provider:"google",
+    options:{
+      redirectTo: window.location.origin + "/dashboard.html"
     }
   });
-};
-
-/* AUTO LOGIN */
-const { data: { session } } = await supabase.auth.getSession();
-
-if (session) {
-  localStorage.setItem("token", session.access_token);
-  window.location.href = "dashboard.html";
 }
+
+/* ✅ AUTO LOGIN */
+(async ()=>{
+  const { data:{ session } } = await supabase.auth.getSession();
+
+  if(session){
+    localStorage.setItem("token", session.access_token);
+    window.location.href="dashboard.html";
+  }
+})();
 </script>
 
 </body>

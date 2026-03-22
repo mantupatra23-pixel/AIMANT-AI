@@ -8,16 +8,25 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    body { margin:0; font-family: Arial; background:#f5f5f5; }
+    body {
+      margin:0;
+      font-family: Arial;
+      background:#f5f5f5;
+    }
 
     .navbar {
       display:flex;
       justify-content:space-between;
       padding:15px 25px;
       background:white;
+      box-shadow:0 2px 10px rgba(0,0,0,0.1);
     }
 
-    .right { display:flex; gap:10px; }
+    .right {
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
 
     button {
       padding:8px 14px;
@@ -37,11 +46,28 @@
     }
 
     .box {
-      width:400px;
+      width:90%;
+      max-width:420px;
       background:white;
       padding:25px;
       border-radius:10px;
       text-align:center;
+      box-shadow:0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    textarea {
+      width:100%;
+      height:100px;
+      padding:10px;
+      margin-top:15px;
+      border-radius:8px;
+      border:1px solid #ccc;
+    }
+
+    .generate {
+      margin-top:15px;
+      background:#00c896;
+      color:white;
     }
   </style>
 </head>
@@ -58,7 +84,9 @@
 <div class="center">
   <div class="box">
     <h2>Build AI Apps in Seconds</h2>
-    <textarea placeholder="Create AI app..." style="width:100%;height:100px;"></textarea>
+    <textarea placeholder="Create AI app..."></textarea>
+    <br>
+    <button class="generate">Generate 🚀</button>
   </div>
 </div>
 
@@ -85,36 +113,38 @@ function logout() {
   location.reload();
 }
 
-// 🔥 MAIN FIX (IMPORTANT)
+// 🔥 UPDATE UI
+function updateUI(user) {
+  document.getElementById("nav-right").innerHTML = `
+    <span>${user.email}</span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  `;
+}
+
+// 🔥 AUTH STATE LISTENER (MAIN FIX)
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log("EVENT:", event);
+
+  if (session && session.user) {
+    updateUI(session.user);
+
+    // save token
+    localStorage.setItem("token", session.access_token);
+  }
+});
+
+// 🔥 PAGE LOAD CHECK (backup)
 async function checkUser() {
-  const { data } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
 
-  if (data.user) {
-    console.log("Logged in:", data.user.email);
-
-    // UI update
-    document.getElementById("nav-right").innerHTML = `
-      <span>${data.user.email}</span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
-    `;
-
-    // 🔥 SAVE TOKEN
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData.session) {
-      localStorage.setItem("token", sessionData.session.access_token);
-    }
-
-    // 🔥 REDIRECT (optional)
-    // window.location.href = "/dashboard.html";
-
-  } else {
-    console.log("Not logged in");
+  if (session && session.user) {
+    updateUI(session.user);
+    localStorage.setItem("token", session.access_token);
   }
 }
 
-// 🔥 RUN AFTER LOAD (delay fix)
-setTimeout(checkUser, 1000);
-
+// run after slight delay (mobile fix)
+setTimeout(checkUser, 500);
 </script>
 
 </body>
