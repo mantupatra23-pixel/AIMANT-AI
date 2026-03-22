@@ -1,247 +1,176 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mantu AI Dashboard</title>
 
 <style>
 body{
-  margin:0;
-  font-family:'Segoe UI',sans-serif;
-  background:#f8fafc;
-  display:flex;
+    margin:0;
+    font-family:sans-serif;
+    background:#020617;
+    color:white;
 }
 
-/* SIDEBAR */
-.sidebar{
-  width:240px;
-  height:100vh;
-  background:white;
-  padding:20px;
-  box-shadow:2px 0 20px rgba(0,0,0,0.05);
-}
-
-.logo{
-  font-size:22px;
-  font-weight:bold;
-  margin-bottom:30px;
-}
-
-.menu a{
-  display:block;
-  padding:12px;
-  margin-bottom:10px;
-  border-radius:8px;
-  text-decoration:none;
-  color:#333;
-}
-
-.menu a:hover{
-  background:#00c896;
-  color:white;
+/* HEADER */
+.header{
+    padding:15px;
+    background:#0f172a;
+    text-align:center;
+    font-size:18px;
+    font-weight:bold;
 }
 
 /* MAIN */
-.main{
-  flex:1;
-  padding:25px;
+.container{
+    padding:20px;
 }
 
-/* CARDS */
-.cards{
-  display:flex;
-  gap:20px;
-  flex-wrap:wrap;
-}
-
+/* CARD */
 .card{
-  flex:1;
-  min-width:150px;
-  background:white;
-  padding:20px;
-  border-radius:12px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.05);
+    background:#0f172a;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:20px;
 }
 
-/* BUILD BOX */
-.build-box{
-  margin-top:20px;
-  background:white;
-  padding:20px;
-  border-radius:12px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.05);
-}
-
+/* INPUT */
 input{
-  width:70%;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid #ddd;
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    margin-top:10px;
 }
 
+/* BUTTON */
 button{
-  padding:10px 15px;
-  border:none;
-  border-radius:8px;
-  background:#00c896;
-  color:white;
-  cursor:pointer;
+    margin-top:10px;
+    padding:10px;
+    width:100%;
+    border:none;
+    border-radius:8px;
+    background:#00c896;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
 }
 
-button:hover{
-  background:#00b383;
-}
-
-/* PROJECT LIST */
+/* PROJECT */
 .project{
-  margin-top:10px;
-  padding:15px;
-  background:#111;
-  color:#0f0;
-  border-radius:10px;
+    background:#111827;
+    padding:10px;
+    border-radius:10px;
+    margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <div class="logo">🚀 Mantu AI</div>
-
-  <div class="menu">
-    <a href="#">Dashboard</a>
-    <a href="#">Projects</a>
-    <a href="#" onclick="logout()">Logout</a>
-  </div>
+<div class="header">
+🚀 Mantu AI Dashboard
 </div>
 
-<!-- MAIN -->
-<div class="main">
+<div class="container">
 
-  <!-- STATS -->
-  <div class="cards">
-    <div class="card">Projects: <b id="projects">0</b></div>
-    <div class="card">Revenue: ₹<b id="revenue">0</b></div>
-    <div class="card">Credits: <b id="credits">0</b></div>
-  </div>
-
-  <!-- BUILD -->
-  <div class="build-box">
+<!-- CREATE APP -->
+<div class="card">
     <h3>Create AI App</h3>
-    <input id="idea" placeholder="Enter your AI idea...">
+    <input id="idea" placeholder="Enter your AI idea">
     <button onclick="build()">Build 🚀</button>
-  </div>
+</div>
 
-  <!-- PROJECT LIST -->
-  <div id="projectList"></div>
+<!-- STATUS -->
+<div class="card">
+    <h3>Live Status</h3>
+    <p id="status">Waiting...</p>
+</div>
+
+<!-- PROJECT LIST -->
+<div class="card">
+    <h3>Your Projects</h3>
+    <div id="projects"></div>
+</div>
 
 </div>
 
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+<script>
 
-const supabase = createClient(
-  "https://tajgxsdzjnnvoifcymdx.supabase.co",
-  "YOUR_ANON_KEY"
-);
+const projectsDiv = document.getElementById("projects");
 
-// ✅ SESSION CHECK
-const { data: { session } } = await supabase.auth.getSession();
+// 🚀 BUILD APP
+async function build(){
+    const idea = document.getElementById("idea").value;
 
-if (!session) {
-  alert("Login required");
-  window.location.href = "login.html";
+    if(!idea){
+        alert("Enter idea");
+        return;
+    }
+
+    document.getElementById("status").innerText = "⚡ Building...";
+
+    const res = await fetch("/generate",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({idea})
+    });
+
+    const data = await res.json();
+
+    if(data.build_id){
+        localStorage.setItem("build_id", data.build_id);
+
+        addProject(data.build_id);
+        checkStatus(data.build_id);
+    }else{
+        alert("Error");
+    }
 }
 
-// TOKEN
-const token = session.access_token;
-
-// LOAD DASHBOARD DATA
-fetch("https://aimant-ai.onrender.com/dashboard",{
-  headers:{
-    "Authorization":"Bearer "+token
-  }
-})
-.then(res=>res.json())
-.then(data=>{
-  document.getElementById("projects").innerText = data.projects || 0;
-  document.getElementById("revenue").innerText = data.revenue || 0;
-  document.getElementById("credits").innerText = data.credits || 0;
-})
-.catch(()=>alert("Error loading dashboard"));
-
-// 🚀 BUILD PROJECT
-window.build = async function(){
-  let idea = document.getElementById("idea").value;
-
-  if(!idea){
-    alert("Enter idea");
-    return;
-  }
-
-  let res = await fetch("https://aimant-ai.onrender.com/generate",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+token
-    },
-    body:JSON.stringify({idea})
-  });
-
-  let data = await res.json();
-
-  if(data.build_id){
-    addProject(data.build_id);
-  }else{
-    alert("Error creating project");
-  }
-};
-
-// ADD PROJECT UI
+// 📦 ADD PROJECT UI
 function addProject(id){
-  let div = document.createElement("div");
+    const div = document.createElement("div");
 
-  div.className = "project";
-  div.innerHTML = `
-    Project ID: ${id}
-    <br><br>
-    <button onclick="check('${id}')">Check Status</button>
-  `;
+    div.className = "project";
+    div.innerHTML = `
+        Project ID: ${id}
+        <br><br>
+        <button onclick="checkStatus('${id}')">Check Status</button>
+        <button onclick="openApp('${id}')">Open App</button>
+    `;
 
-  document.getElementById("projectList").appendChild(div);
+    projectsDiv.appendChild(div);
 }
 
 // 🔍 CHECK STATUS
-window.check = async function(id){
-  let res = await fetch(`https://aimant-ai.onrender.com/status/${id}`,{
-    headers:{
-      "Authorization":"Bearer "+token
+async function checkStatus(id){
+    const res = await fetch(`/status/${id}`);
+    const data = await res.json();
+
+    document.getElementById("status").innerText = "Status: " + data.status;
+
+    if(data.status !== "live"){
+        setTimeout(()=>checkStatus(id),2000);
+    }else{
+        document.getElementById("status").innerText = "✅ LIVE";
     }
-  });
-
-  let data = await res.json();
-
-  if(data.status === "live"){
-    alert("✅ LIVE READY");
-
-    let link = document.createElement("a");
-    link.href = data.deployment_url;
-    link.target = "_blank";
-    link.innerHTML = "<br><button>Open App 🚀</button>";
-
-    document.getElementById("projectList").appendChild(link);
-
-  }else{
-    alert("⏳ Still building...");
-  }
-};
-
-// LOGOUT
-window.logout = async function(){
-  await supabase.auth.signOut();
-  window.location.href = "login.html";
 }
+
+// 🌐 OPEN APP
+function openApp(id){
+    window.open(`/preview/${id}`, "_blank");
+}
+
+// 🔁 AUTO LOAD LAST BUILD
+const last = localStorage.getItem("build_id");
+if(last){
+    addProject(last);
+    checkStatus(last);
+}
+
 </script>
 
 </body>

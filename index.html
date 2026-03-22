@@ -6,97 +6,79 @@
 
 <style>
 body {
-  margin:0;
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg,#f8fafc,#e2e8f0);
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#0f172a,#020617);
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
 }
 
-/* MAIN BOX */
+/* CARD */
 .container {
-  width:90%;
-  max-width:500px;
-  background:white;
-  padding:30px;
-  border-radius:18px;
-  box-shadow:0 20px 60px rgba(0,0,0,0.1);
-  text-align:center;
-  animation:fadeIn 0.6s ease;
+    width:90%;
+    max-width:420px;
+    background:#111827;
+    padding:25px;
+    border-radius:18px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.5);
+    text-align:center;
 }
 
-@keyframes fadeIn {
-  from {opacity:0; transform:translateY(20px);}
-  to {opacity:1; transform:translateY(0);}
-}
-
+/* TITLE */
 h1 {
-  margin-bottom:5px;
+    margin-bottom:5px;
 }
 
 .sub {
-  color:#64748b;
-  font-size:14px;
-  margin-bottom:20px;
+    color:#9ca3af;
+    font-size:13px;
+    margin-bottom:20px;
 }
 
 /* TEXTAREA */
 textarea {
-  width:100%;
-  height:120px;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid #ddd;
-  font-size:14px;
-  resize:none;
-  outline:none;
-  transition:0.3s;
-}
-
-textarea:focus {
-  border-color:#00c896;
-  box-shadow:0 0 0 3px rgba(0,200,150,0.1);
+    width:100%;
+    height:110px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #374151;
+    background:#020617;
+    color:white;
+    outline:none;
 }
 
 /* BUTTON */
 button {
-  width:100%;
-  margin-top:15px;
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  background:#00c896;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-  transition:0.3s;
-}
-
-button:hover {
-  background:#00b383;
-  transform:translateY(-1px);
+    width:100%;
+    margin-top:15px;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:#00c896;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
 }
 
 /* LOADER */
 .loader {
-  margin-top:15px;
-  font-size:14px;
-  color:#555;
+    margin-top:15px;
+    font-size:14px;
+    color:#9ca3af;
 }
 
 /* OUTPUT */
 .output {
-  margin-top:15px;
-  background:#111;
-  color:#0f0;
-  padding:12px;
-  border-radius:10px;
-  text-align:left;
-  height:150px;
-  overflow:auto;
-  font-size:13px;
+    margin-top:15px;
+    background:#020617;
+    padding:10px;
+    border-radius:10px;
+    font-size:12px;
+    color:#22c55e;
+    text-align:left;
 }
 </style>
 </head>
@@ -104,70 +86,54 @@ button:hover {
 <body>
 
 <div class="container">
-  <h1>🚀 Mantu AI</h1>
-  <div class="sub">Build AI Apps in Seconds</div>
+    <h1>🚀 Mantu AI</h1>
+    <div class="sub">Build AI Apps in Seconds</div>
 
-  <textarea id="idea" placeholder="Describe your AI app idea..."></textarea>
+    <textarea id="idea" placeholder="Describe your AI app idea..."></textarea>
 
-  <button onclick="generateApp()">Generate App ⚡</button>
+    <button onclick="generateApp()">Generate App ⚡</button>
 
-  <div id="loader" class="loader"></div>
-  <div id="output" class="output"></div>
+    <div id="loader" class="loader"></div>
+    <div id="output" class="output"></div>
 </div>
 
 <script>
 async function generateApp(){
-  const idea = document.getElementById("idea").value;
+    const idea = document.getElementById("idea").value;
 
-  if(!idea){
-    alert("Enter idea first");
-    return;
-  }
-
-  document.getElementById("loader").innerText = "⚡ Generating...";
-  document.getElementById("output").innerText = "";
-
-  try{
-    const res = await fetch("/generate",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({idea})
-    });
-
-    const data = await res.json();
-
-    if(data.build_id){
-      document.getElementById("loader").innerText = "🚀 Building project...";
-      checkStatus(data.build_id);
-    } else {
-      document.getElementById("loader").innerText = "❌ Failed";
-      document.getElementById("output").innerText = JSON.stringify(data,null,2);
+    if(!idea){
+        alert("Enter idea first");
+        return;
     }
 
-  }catch(e){
-    document.getElementById("loader").innerText = "❌ Server Error";
-  }
-}
+    document.getElementById("loader").innerText = "⚡ Building your app...";
+    document.getElementById("output").innerText = "";
 
-/* 🔥 STATUS CHECK */
-async function checkStatus(bid){
-  const res = await fetch(`/status/${bid}`);
-  const data = await res.json();
+    try{
+        const res = await fetch("/generate",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({idea: idea})
+        });
 
-  document.getElementById("output").innerText =
-    "Status: " + data.status + "\n\n" +
-    (data.logs ? data.logs.join("\n") : "");
+        const data = await res.json();
 
-  if(data.status !== "live"){
-    setTimeout(()=>checkStatus(bid),3000);
-  }else{
-    document.getElementById("loader").innerText = "✅ LIVE READY";
+        if(data.build_id){
+            // SAVE BUILD ID
+            localStorage.setItem("build_id", data.build_id);
 
-    document.getElementById("output").innerText +=
-      "\n\n🚀 LIVE URL:\n" + data.deployment_url;
-  }
+            // REDIRECT
+            window.location.href = "/dashboard";
+        }else{
+            document.getElementById("loader").innerText = "❌ Failed";
+            document.getElementById("output").innerText = JSON.stringify(data,null,2);
+        }
+
+    }catch(e){
+        document.getElementById("loader").innerText = "❌ Server Error";
+    }
 }
 </script>
 
