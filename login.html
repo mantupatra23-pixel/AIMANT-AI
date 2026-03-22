@@ -1,71 +1,93 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Aimant AI Login</title>
-  <style>
-    body {
-      margin:0;
-      height:100vh;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      background: linear-gradient(270deg,#0f2027,#203a43,#2c5364);
-      background-size:600% 600%;
-      animation:bgMove 10s infinite;
-      font-family:Arial;
-      color:white;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mantu AI Login</title>
 
-    @keyframes bgMove {
-      0%{background-position:0% 50%;}
-      50%{background-position:100% 50%;}
-      100%{background-position:0% 50%;}
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
 
-    .box {
-      background:rgba(0,0,0,0.7);
-      padding:30px;
-      border-radius:15px;
-      width:320px;
-      text-align:center;
-      backdrop-filter: blur(10px);
-      animation:fadeIn 1s ease;
-    }
+/* 🎥 VIDEO BACKGROUND */
+video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+}
 
-    @keyframes fadeIn {
-      from {opacity:0; transform:translateY(20px);}
-      to {opacity:1; transform:translateY(0);}
-    }
+/* 🔳 CENTER BOX */
+.box {
+  width: 300px;
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  margin: auto;
+  margin-top: 120px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
 
-    input {
-      width:90%;
-      padding:12px;
-      margin:10px;
-      border-radius:10px;
-      border:none;
-      outline:none;
-    }
+h2 {
+  margin-bottom: 20px;
+}
 
-    button {
-      width:95%;
-      padding:12px;
-      margin-top:10px;
-      border:none;
-      border-radius:10px;
-      cursor:pointer;
-      font-weight:bold;
-    }
+/* INPUT */
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
 
-    .login { background:#00ffcc; }
-    .google { background:white; color:black; }
+/* BUTTONS */
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
-    a { color:#00ffcc; }
-  </style>
+/* LOGIN */
+.login {
+  background: #00c896;
+  color: white;
+}
+
+/* GOOGLE */
+.google {
+  background: white;
+  border: 1px solid #ccc;
+}
+
+/* LINK */
+a {
+  color: #00c896;
+  text-decoration: none;
+}
+</style>
 </head>
+
 <body>
 
+<!-- 🎥 VIDEO -->
+<video autoplay muted loop>
+  <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4">
+</video>
+
+<!-- 🔳 LOGIN BOX -->
 <div class="box">
-  <h2>🚀 Aimant AI</h2>
+  <h2>🚀 Mantu AI</h2>
 
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Password">
@@ -77,52 +99,56 @@
   <p><a href="signup.html">Create Account</a></p>
 </div>
 
+<!-- 🔥 SCRIPT -->
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
+/* 🔑 SUPABASE */
 const supabase = createClient(
   "https://tajgxsdzjnnvoifcymdx.supabase.co",
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-// 🔐 EMAIL LOGIN
-window.login = async function() {
+/* 🔐 EMAIL LOGIN */
+window.login = async function () {
   let email = document.getElementById("email").value;
   let password = document.getElementById("password").value;
 
-  let res = await fetch("https://aimant-ai.onrender.com/login", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({email,password})
+  let { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
   });
 
-  let data = await res.json();
-
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-    window.location.href="dashboard.html";
+  if (error) {
+    alert(error.message);
   } else {
-    alert(data.error);
+    localStorage.setItem("token", data.session.access_token);
+    window.location.href = "dashboard.html";
   }
 };
 
-// 🔥 GOOGLE LOGIN
+/* 🔥 GOOGLE LOGIN */
 window.googleLogin = async function () {
-  await supabase.auth.signInWithOAuth({
+  const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: window.location.origin + "/dashboard.html"
+      redirectTo: "https://aimant-ai.onrender.com/dashboard.html"
     }
   });
+
+  if (error) {
+    alert(error.message);
+  }
 };
 
-// ✅ AUTO LOGIN AFTER GOOGLE
+/* ✅ AUTO LOGIN AFTER GOOGLE */
 const { data: { session } } = await supabase.auth.getSession();
 
 if (session) {
   localStorage.setItem("token", session.access_token);
   window.location.href = "dashboard.html";
 }
+
 </script>
 
 </body>
