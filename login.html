@@ -3,12 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mantu AI Login</title>
+<title>Mantu AI</title>
 
 <style>
 body {
   margin: 0;
   font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -23,16 +27,16 @@ video {
   z-index: -1;
 }
 
-/* 🔳 CENTER BOX */
+/* 🔥 GLASS EFFECT BOX */
 .box {
-  width: 300px;
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  margin: auto;
-  margin-top: 120px;
+  width: 350px;
+  padding: 30px;
+  border-radius: 15px;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,0.15);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  color: white;
 }
 
 h2 {
@@ -42,20 +46,22 @@ h2 {
 /* INPUT */
 input {
   width: 100%;
-  padding: 10px;
-  margin: 8px 0;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: none;
+  outline: none;
 }
 
-/* BUTTONS */
+/* BUTTON */
 button {
   width: 100%;
-  padding: 10px;
-  margin-top: 10px;
+  padding: 12px;
+  margin-top: 12px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  font-size: 15px;
 }
 
 /* LOGIN */
@@ -64,15 +70,19 @@ button {
   color: white;
 }
 
-/* GOOGLE */
+/* GOOGLE BUTTON */
 .google {
   background: white;
-  border: 1px solid #ccc;
+  color: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 /* LINK */
 a {
-  color: #00c896;
+  color: #00ffcc;
   text-decoration: none;
 }
 </style>
@@ -80,12 +90,12 @@ a {
 
 <body>
 
-<!-- 🎥 VIDEO -->
+<!-- 🎥 AI VIDEO BACKGROUND -->
 <video autoplay muted loop>
-  <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4">
+  <source src="https://cdn.coverr.co/videos/coverr-working-on-ai-technology-5176/1080p.mp4" type="video/mp4">
 </video>
 
-<!-- 🔳 LOGIN BOX -->
+<!-- 🔥 LOGIN BOX -->
 <div class="box">
   <h2>🚀 Mantu AI</h2>
 
@@ -94,22 +104,24 @@ a {
 
   <button class="login" onclick="login()">Login</button>
 
-  <button class="google" onclick="googleLogin()">🔐 Login with Google</button>
+  <!-- GOOGLE BUTTON WITH ICON -->
+  <button class="google" onclick="googleLogin()">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
+    Login with Google
+  </button>
 
   <p><a href="signup.html">Create Account</a></p>
 </div>
 
-<!-- 🔥 SCRIPT -->
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-/* 🔑 SUPABASE */
 const supabase = createClient(
   "https://tajgxsdzjnnvoifcymdx.supabase.co",
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-/* 🔐 EMAIL LOGIN */
+/* EMAIL LOGIN */
 window.login = async function () {
   let email = document.getElementById("email").value;
   let password = document.getElementById("password").value;
@@ -127,28 +139,23 @@ window.login = async function () {
   }
 };
 
-/* 🔥 GOOGLE LOGIN */
+/* GOOGLE LOGIN */
 window.googleLogin = async function () {
-  const { error } = await supabase.auth.signInWithOAuth({
+  await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: "https://aimant-ai.onrender.com/dashboard.html"
     }
   });
-
-  if (error) {
-    alert(error.message);
-  }
 };
 
-/* ✅ AUTO LOGIN AFTER GOOGLE */
+/* AUTO LOGIN */
 const { data: { session } } = await supabase.auth.getSession();
 
 if (session) {
   localStorage.setItem("token", session.access_token);
   window.location.href = "dashboard.html";
 }
-
 </script>
 
 </body>
