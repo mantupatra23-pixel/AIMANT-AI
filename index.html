@@ -1,106 +1,92 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mantu AI</title>
 
 <style>
 body {
-  margin: 0;
+  margin:0;
   font-family: Arial;
-  background: #f5f5f5;
+  background:#f5f5f5;
 }
 
-/* 🔝 NAVBAR */
+/* NAVBAR */
 .navbar {
-  display: flex;
-  justify-content: space-between;
-  padding: 15px 30px;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  display:flex;
+  justify-content:space-between;
+  padding:15px 25px;
+  background:white;
+  box-shadow:0 2px 10px rgba(0,0,0,0.1);
 }
 
-.logo {
-  font-weight: bold;
-  font-size: 18px;
-}
+.logo { font-weight:bold; }
 
-.right {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
+.right { display:flex; gap:10px; align-items:center; }
 
 button {
-  padding: 8px 14px;
-  border: none;
-  cursor: pointer;
+  padding:8px 14px;
+  border:none;
+  cursor:pointer;
 }
 
-.login-btn { background: black; color: white; }
-.logout-btn { background: red; color: white; }
+.login-btn { background:black; color:white; }
+.logout-btn { background:red; color:white; }
 
-/* 🎯 CENTER BOX */
+/* CENTER */
 .center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 80vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:85vh;
 }
 
 .box {
-  width: 500px;
-  background: white;
-  padding: 30px;
-  border-radius: 10px;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  width:420px;
+  background:white;
+  padding:25px;
+  border-radius:10px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
 }
 
 textarea {
-  width: 100%;
-  height: 120px;
-  padding: 10px;
-  margin-top: 15px;
-  border-radius: 8px;
+  width:100%;
+  height:100px;
+  padding:10px;
+  margin-top:15px;
+  border-radius:8px;
 }
 
 .generate {
-  margin-top: 15px;
-  background: #00c896;
-  color: white;
-}
-
-/* 👤 USER */
-.user {
-  font-size: 14px;
-  color: gray;
+  margin-top:15px;
+  background:#00c896;
+  color:white;
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🔝 NAVBAR -->
+<!-- NAVBAR -->
 <div class="navbar">
   <div class="logo">🚀 Mantu AI</div>
 
   <div class="right" id="nav-right">
     <button class="login-btn" onclick="login()">Login</button>
-    <button class="login-btn" onclick="signup()">Signup</button>
+    <button class="login-btn" onclick="login()">Signup</button>
   </div>
 </div>
 
-<!-- 🎯 CENTER -->
+<!-- CENTER -->
 <div class="center">
   <div class="box">
     <h2>Build AI Apps in Seconds</h2>
-    <p>Enter your idea → AI will generate full app</p>
+    <p>Enter idea → AI will generate app</p>
 
-    <textarea placeholder="Example: Create fitness app with login system..."></textarea>
+    <textarea placeholder="Create AI app..."></textarea>
 
-    <button class="generate">Generate App 🚀</button>
+    <button class="generate">Generate 🚀</button>
   </div>
 </div>
 
@@ -112,7 +98,7 @@ const supabase = createClient(
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-/* 🔐 LOGIN (GOOGLE) */
+/* 🔐 GOOGLE LOGIN */
 window.login = async function () {
   await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -122,19 +108,18 @@ window.login = async function () {
   });
 };
 
-/* SIGNUP SAME */
-window.signup = login;
+/* 🔥 IMPORTANT FIX */
+async function loadUser() {
+  const { data: { session } } = await supabase.auth.getSession();
 
-/* 👤 CHECK USER */
-const { data: { session } } = await supabase.auth.getSession();
+  if (session && session.user) {
+    const user = session.user;
 
-if (session) {
-  const user = session.user;
-
-  document.getElementById("nav-right").innerHTML = `
-    <span class="user">👤 ${user.email}</span>
-    <button class="logout-btn" onclick="logout()">Logout</button>
-  `;
+    document.getElementById("nav-right").innerHTML = `
+      <span>👤 ${user.email}</span>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    `;
+  }
 }
 
 /* 🚪 LOGOUT */
@@ -142,6 +127,16 @@ window.logout = async function () {
   await supabase.auth.signOut();
   location.reload();
 };
+
+/* ⚡ PAGE LOAD */
+loadUser();
+
+/* ⚡ AUTO UPDATE (IMPORTANT) */
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    loadUser();
+  }
+});
 </script>
 
 </body>
