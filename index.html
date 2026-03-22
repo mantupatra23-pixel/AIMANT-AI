@@ -91,23 +91,31 @@ const supabase = window.supabase.createClient(
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-/* 🔥 GOOGLE LOGIN */
+/* 🔥 LOGIN */
 function login() {
   supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: window.location.origin + "/"
+      redirectTo: window.location.origin
     }
   });
 }
 
-/* 🔥 CHECK LOGIN */
-async function checkUser() {
-  const { data, error } = await supabase.auth.getUser();
+/* 🔥 FIX: HANDLE REDIRECT TOKEN */
+async function handleRedirect() {
+  if (window.location.hash.includes("access_token")) {
+    await supabase.auth.exchangeCodeForSession(window.location.href);
+    window.location.href = "/";
+  }
+}
 
-  if (data.user) {
+/* 🔥 CHECK SESSION */
+async function checkUser() {
+  const { data } = await supabase.auth.getSession();
+
+  if (data.session) {
     document.getElementById("nav-right").innerHTML = `
-      <span>👤 ${data.user.email}</span>
+      <span>👤 ${data.session.user.email}</span>
       <button class="logout-btn" onclick="logout()">Logout</button>
     `;
   }
@@ -119,7 +127,8 @@ async function logout() {
   location.reload();
 }
 
-/* 🔥 AUTO RUN */
+/* 🔥 RUN FLOW */
+handleRedirect();
 checkUser();
 
 /* 🔥 LISTENER */
