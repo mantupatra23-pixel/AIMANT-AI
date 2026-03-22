@@ -21,7 +21,7 @@ body {
 
 .logo { font-weight:bold; }
 
-.right { display:flex; gap:10px; }
+.right { display:flex; gap:10px; align-items:center; }
 
 button {
   padding:8px 14px;
@@ -101,42 +101,50 @@ function login() {
   });
 }
 
-/* 🔥 FIX: HANDLE REDIRECT TOKEN */
-async function handleRedirect() {
+/* 🔥 MANUAL TOKEN HANDLE */
+function handleToken() {
   if (window.location.hash.includes("access_token")) {
-    await supabase.auth.exchangeCodeForSession(window.location.href);
-    window.location.href = "/";
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+
+    if (access_token) {
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("refresh_token", refresh_token);
+
+      // साफ URL
+      window.location.href = "/";
+    }
   }
 }
 
-/* 🔥 CHECK SESSION */
+/* 🔥 CHECK USER */
 async function checkUser() {
-  const { data } = await supabase.auth.getSession();
+  let token = localStorage.getItem("access_token");
 
-  if (data.session) {
-    document.getElementById("nav-right").innerHTML = `
-      <span>👤 ${data.session.user.email}</span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
-    `;
+  if (token) {
+    const { data } = await supabase.auth.getUser(token);
+
+    if (data.user) {
+      document.getElementById("nav-right").innerHTML = `
+        <span>👤 ${data.user.email}</span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      `;
+    }
   }
 }
 
 /* 🔥 LOGOUT */
-async function logout() {
-  await supabase.auth.signOut();
+function logout() {
+  localStorage.clear();
   location.reload();
 }
 
-/* 🔥 RUN FLOW */
-handleRedirect();
+/* 🔥 RUN */
+handleToken();
 checkUser();
-
-/* 🔥 LISTENER */
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session) {
-    checkUser();
-  }
-});
 </script>
 
 </body>
