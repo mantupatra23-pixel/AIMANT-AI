@@ -1,77 +1,81 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mantu AI</title>
+  <title>Mantu AI</title>
 
-<style>
-body {
-  margin:0;
-  font-family: Arial;
-  background:#f5f5f5;
-}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-.navbar {
-  display:flex;
-  justify-content:space-between;
-  padding:15px 25px;
-  background:white;
-  box-shadow:0 2px 10px rgba(0,0,0,0.1);
-}
+  <style>
+    body {
+      margin:0;
+      font-family: Arial;
+      background:#f5f5f5;
+    }
 
-.logo { font-weight:bold; }
+    .navbar {
+      display:flex;
+      justify-content:space-between;
+      padding:15px 25px;
+      background:white;
+      box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    }
 
-.right { display:flex; gap:10px; align-items:center; }
+    .logo { font-weight:bold; }
 
-button {
-  padding:8px 14px;
-  border:none;
-  cursor:pointer;
-}
+    .right {
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
 
-.login-btn { background:black; color:white; }
-.logout-btn { background:red; color:white; }
+    button {
+      padding:8px 14px;
+      border:none;
+      cursor:pointer;
+      border-radius:6px;
+    }
 
-.center {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:85vh;
-}
+    .login-btn { background:black; color:white; }
+    .logout-btn { background:red; color:white; }
 
-.box {
-  width:420px;
-  background:white;
-  padding:25px;
-  border-radius:10px;
-  text-align:center;
-  box-shadow:0 10px 30px rgba(0,0,0,0.1);
-}
+    .center {
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:85vh;
+    }
 
-textarea {
-  width:100%;
-  height:100px;
-  padding:10px;
-  margin-top:15px;
-  border-radius:8px;
-}
+    .box {
+      width:420px;
+      background:white;
+      padding:25px;
+      border-radius:10px;
+      text-align:center;
+      box-shadow:0 10px 30px rgba(0,0,0,0.1);
+    }
 
-.generate {
-  margin-top:15px;
-  background:#00c896;
-  color:white;
-}
-</style>
+    textarea {
+      width:100%;
+      height:100px;
+      padding:10px;
+      margin-top:15px;
+      border-radius:8px;
+    }
+
+    .generate {
+      margin-top:15px;
+      background:#00c896;
+      color:white;
+    }
+  </style>
 </head>
 
 <body>
 
 <div class="navbar">
   <div class="logo">🚀 Mantu AI</div>
-
   <div class="right" id="nav-right">
     <button class="login-btn" onclick="login()">Login</button>
-    <button class="login-btn" onclick="login()">Signup</button>
   </div>
 </div>
 
@@ -83,68 +87,51 @@ textarea {
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- ✅ SUPABASE -->
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-<script>
-const supabase = window.supabase.createClient(
-  "https://tajgxsdzjnnvoifcymdx.supabase.co",
+// 🔥 YOUR KEYS
+const supabase = createClient(
+  "https://tajgxsdozjnnovjfcymdx.supabase.co",
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-/* 🔥 LOGIN */
-function login() {
-  supabase.auth.signInWithOAuth({
+// 🔥 GOOGLE LOGIN
+window.login = async function () {
+  await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: window.location.origin
     }
   });
-}
+};
 
-/* 🔥 MANUAL TOKEN HANDLE */
-function handleToken() {
-  if (window.location.hash.includes("access_token")) {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-
-    const access_token = params.get("access_token");
-    const refresh_token = params.get("refresh_token");
-
-    if (access_token) {
-      localStorage.setItem("access_token", access_token);
-      localStorage.setItem("refresh_token", refresh_token);
-
-      // साफ URL
-      window.location.href = "/";
-    }
-  }
-}
-
-/* 🔥 CHECK USER */
+// 🔥 CHECK SESSION (MAIN FIX)
 async function checkUser() {
-  let token = localStorage.getItem("access_token");
+  const { data: { session } } = await supabase.auth.getSession();
 
-  if (token) {
-    const { data } = await supabase.auth.getUser(token);
+  if (session && session.user) {
+    document.getElementById("nav-right").innerHTML = `
+      <span>👤 ${session.user.email}</span>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    `;
 
-    if (data.user) {
-      document.getElementById("nav-right").innerHTML = `
-        <span>👤 ${data.user.email}</span>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-      `;
-    }
+    // ✅ SAVE TOKEN (for backend)
+    localStorage.setItem("token", session.access_token);
   }
 }
 
-/* 🔥 LOGOUT */
-function logout() {
+// 🔥 LOGOUT
+window.logout = async function () {
+  await supabase.auth.signOut();
   localStorage.clear();
   location.reload();
-}
+};
 
-/* 🔥 RUN */
-handleToken();
+// 🔥 AUTO RUN
 checkUser();
+
 </script>
 
 </body>
