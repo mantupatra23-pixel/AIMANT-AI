@@ -2,31 +2,22 @@
 <html>
 <head>
   <title>Mantu AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    body {
-      margin:0;
-      font-family: Arial;
-      background:#f5f5f5;
-    }
+    body { margin:0; font-family: Arial; background:#f5f5f5; }
 
     .navbar {
       display:flex;
       justify-content:space-between;
       padding:15px 25px;
       background:white;
-      box-shadow:0 2px 10px rgba(0,0,0,0.1);
     }
 
-    .logo { font-weight:bold; }
-
-    .right {
-      display:flex;
-      gap:10px;
-      align-items:center;
-    }
+    .right { display:flex; gap:10px; }
 
     button {
       padding:8px 14px;
@@ -46,26 +37,11 @@
     }
 
     .box {
-      width:420px;
+      width:400px;
       background:white;
       padding:25px;
       border-radius:10px;
       text-align:center;
-      box-shadow:0 10px 30px rgba(0,0,0,0.1);
-    }
-
-    textarea {
-      width:100%;
-      height:100px;
-      padding:10px;
-      margin-top:15px;
-      border-radius:8px;
-    }
-
-    .generate {
-      margin-top:15px;
-      background:#00c896;
-      color:white;
     }
   </style>
 </head>
@@ -73,7 +49,7 @@
 <body>
 
 <div class="navbar">
-  <div class="logo">🚀 Mantu AI</div>
+  <div>🚀 Mantu AI</div>
   <div class="right" id="nav-right">
     <button class="login-btn" onclick="login()">Login</button>
   </div>
@@ -82,55 +58,62 @@
 <div class="center">
   <div class="box">
     <h2>Build AI Apps in Seconds</h2>
-    <textarea placeholder="Create AI app..."></textarea>
-    <button class="generate">Generate 🚀</button>
+    <textarea placeholder="Create AI app..." style="width:100%;height:100px;"></textarea>
   </div>
 </div>
 
-<!-- ✅ SUPABASE -->
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
-// 🔥 YOUR KEYS
-const supabase = createClient(
+<script>
+const supabase = window.supabase.createClient(
   "https://tajgxsdzjnnvoifcymdx.supabase.co",
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-// 🔥 GOOGLE LOGIN
-window.login = async function () {
-  await supabase.auth.signInWithOAuth({
+// 🔥 LOGIN
+function login() {
+  supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: window.location.origin
     }
   });
-};
-
-// 🔥 CHECK SESSION (MAIN FIX)
-async function checkUser() {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session && session.user) {
-    document.getElementById("nav-right").innerHTML = `
-      <span>👤 ${session.user.email}</span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
-    `;
-
-    // ✅ SAVE TOKEN (for backend)
-    localStorage.setItem("token", session.access_token);
-  }
 }
 
 // 🔥 LOGOUT
-window.logout = async function () {
-  await supabase.auth.signOut();
+function logout() {
+  supabase.auth.signOut();
   localStorage.clear();
   location.reload();
-};
+}
 
-// 🔥 AUTO RUN
-checkUser();
+// 🔥 MAIN FIX (IMPORTANT)
+async function checkUser() {
+  const { data } = await supabase.auth.getUser();
+
+  if (data.user) {
+    console.log("Logged in:", data.user.email);
+
+    // UI update
+    document.getElementById("nav-right").innerHTML = `
+      <span>${data.user.email}</span>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    `;
+
+    // 🔥 SAVE TOKEN
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session) {
+      localStorage.setItem("token", sessionData.session.access_token);
+    }
+
+    // 🔥 REDIRECT (optional)
+    // window.location.href = "/dashboard.html";
+
+  } else {
+    console.log("Not logged in");
+  }
+}
+
+// 🔥 RUN AFTER LOAD (delay fix)
+setTimeout(checkUser, 1000);
 
 </script>
 
