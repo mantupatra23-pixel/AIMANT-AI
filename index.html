@@ -1,113 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mantu AI</title>
+  <title>Mantu AI</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f2f2f2;
+      text-align: center;
+    }
 
-<style>
-body {
-  margin:0;
-  font-family: Arial;
-  background:#f5f5f5;
-}
+    .box {
+      width: 90%;
+      max-width: 400px;
+      margin: 150px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
 
-.navbar {
-  display:flex;
-  justify-content:space-between;
-  padding:15px 25px;
-  background:white;
-}
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-top: 10px;
+      padding: 10px;
+    }
 
-button {
-  padding:8px 14px;
-  border:none;
-  cursor:pointer;
-  border-radius:6px;
-}
+    button {
+      margin-top: 10px;
+      padding: 10px;
+      background: #00cc99;
+      border: none;
+      color: white;
+      width: 100%;
+      cursor: pointer;
+    }
 
-.login-btn { background:black; color:white; }
-.logout-btn { background:red; color:white; }
-
-.center {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:85vh;
-}
-
-.box {
-  width:90%;
-  max-width:420px;
-  background:white;
-  padding:25px;
-  border-radius:10px;
-  text-align:center;
-}
-
-textarea {
-  width:100%;
-  height:100px;
-  margin-top:15px;
-}
-
-.generate {
-  margin-top:15px;
-  background:#00c896;
-  color:white;
-}
-</style>
+    pre {
+      text-align: left;
+      background: #111;
+      color: #0f0;
+      padding: 10px;
+      margin-top: 10px;
+      overflow: auto;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="navbar">
-  <div>🚀 Mantu AI</div>
-  <div id="nav-right">
-    <button class="login-btn" onclick="goLogin()">Login</button>
-  </div>
+<h2>🚀 Mantu AI</h2>
+
+<div class="box">
+  <h3>Build AI Apps in Seconds</h3>
+
+  <textarea id="prompt" placeholder="Create AI app..."></textarea>
+
+  <button onclick="generate()">Generate</button>
+
+  <pre id="output"></pre>
 </div>
 
-<div class="center">
-  <div class="box">
-    <h2>Build AI Apps in Seconds</h2>
-    <textarea placeholder="Create AI app..."></textarea>
-    <button class="generate">Generate 🚀</button>
-  </div>
-</div>
+<script>
+async function generate() {
+  let prompt = document.getElementById("prompt").value;
 
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+  let res = await fetch("https://aimant-ai.onrender.com/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prompt })
+  });
 
-const supabase = createClient(
-  "https://tajgxsdzjnnvoifcymdx.supabase.co",
-  "PASTE_YOUR_REAL_ANON_KEY"
-);
+  let data = await res.json();
 
-// ✅ CHECK SESSION (FIXED)
-async function checkUser() {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session) {
-    document.getElementById("nav-right").innerHTML = `
-      <span>${session.user.email}</span>
-      <button class="logout-btn" onclick="logout()">Logout</button>
-    `;
-  }
+  document.getElementById("output").innerText =
+    data.result || JSON.stringify(data, null, 2);
 }
-
-// ✅ LOGOUT
-window.logout = async function () {
-  await supabase.auth.signOut();
-  location.reload();
-}
-
-// ✅ LOGIN PAGE REDIRECT
-window.goLogin = function () {
-  window.location.href = "login.html";
-}
-
-// AUTO RUN
-checkUser();
 </script>
 
 </body>
