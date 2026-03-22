@@ -68,7 +68,6 @@ textarea {
 
 <body>
 
-<!-- NAVBAR -->
 <div class="navbar">
   <div class="logo">🚀 Mantu AI</div>
 
@@ -78,11 +77,10 @@ textarea {
   </div>
 </div>
 
-<!-- CENTER -->
 <div class="center">
   <div class="box">
     <h2>Build AI Apps in Seconds</h2>
-    <p>Enter idea → AI will generate app</p>
+    <p>Enter idea → AI generate app</p>
 
     <textarea placeholder="Create AI app..."></textarea>
 
@@ -90,30 +88,30 @@ textarea {
   </div>
 </div>
 
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-const supabase = createClient(
+<script>
+const supabase = window.supabase.createClient(
   "https://tajgxsdzjnnvoifcymdx.supabase.co",
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-/* 🔐 GOOGLE LOGIN */
-window.login = async function () {
-  await supabase.auth.signInWithOAuth({
+/* LOGIN */
+function login() {
+  supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: window.location.origin
     }
   });
-};
+}
 
-/* 🔥 IMPORTANT FIX */
+/* LOAD USER */
 async function loadUser() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data } = await supabase.auth.getSession();
 
-  if (session && session.user) {
-    const user = session.user;
+  if (data.session) {
+    const user = data.session.user;
 
     document.getElementById("nav-right").innerHTML = `
       <span>👤 ${user.email}</span>
@@ -122,20 +120,20 @@ async function loadUser() {
   }
 }
 
-/* 🚪 LOGOUT */
-window.logout = async function () {
-  await supabase.auth.signOut();
+/* LOGOUT */
+function logout() {
+  supabase.auth.signOut();
   location.reload();
-};
+}
 
-/* ⚡ PAGE LOAD */
-loadUser();
+/* IMPORTANT FIX */
+window.addEventListener("load", () => {
+  setTimeout(loadUser, 1000);
+});
 
-/* ⚡ AUTO UPDATE (IMPORTANT) */
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session) {
-    loadUser();
-  }
+/* AUTO UPDATE */
+supabase.auth.onAuthStateChange(() => {
+  loadUser();
 });
 </script>
 
