@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Header
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.responses import FileResponse
@@ -24,6 +25,9 @@ app = FastAPI()
 templates = Jinja2Templates(directory=".")
 
 SECRET = "aimant_secret_key"
+
+# 🔥 FRONTEND SERVE (IMPORTANT)
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 # ===== CONFIG =====
 SECRET = "aimant_secret"
