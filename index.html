@@ -11,7 +11,6 @@ body {
   background:#f5f5f5;
 }
 
-/* NAVBAR */
 .navbar {
   display:flex;
   justify-content:space-between;
@@ -22,7 +21,7 @@ body {
 
 .logo { font-weight:bold; }
 
-.right { display:flex; gap:10px; align-items:center; }
+.right { display:flex; gap:10px; }
 
 button {
   padding:8px 14px;
@@ -33,7 +32,6 @@ button {
 .login-btn { background:black; color:white; }
 .logout-btn { background:red; color:white; }
 
-/* CENTER */
 .center {
   display:flex;
   justify-content:center;
@@ -80,10 +78,7 @@ textarea {
 <div class="center">
   <div class="box">
     <h2>Build AI Apps in Seconds</h2>
-    <p>Enter idea → AI generate app</p>
-
     <textarea placeholder="Create AI app..."></textarea>
-
     <button class="generate">Generate 🚀</button>
   </div>
 </div>
@@ -106,8 +101,17 @@ function login() {
   });
 }
 
-/* LOAD USER */
-async function loadUser() {
+/* 🔥 MAIN FIX FUNCTION */
+async function handleLogin() {
+  // 🔥 STEP 1: check hash (after redirect)
+  const hash = window.location.hash;
+
+  if (hash && hash.includes("access_token")) {
+    // clean URL
+    history.replaceState(null, null, window.location.pathname);
+  }
+
+  // 🔥 STEP 2: get session
   const { data } = await supabase.auth.getSession();
 
   if (data.session) {
@@ -126,14 +130,17 @@ function logout() {
   location.reload();
 }
 
-/* IMPORTANT FIX */
-window.addEventListener("load", () => {
-  setTimeout(loadUser, 1000);
-});
+/* 🔥 FORCE RUN */
+setTimeout(handleLogin, 1000);
 
-/* AUTO UPDATE */
-supabase.auth.onAuthStateChange(() => {
-  loadUser();
+/* 🔥 ALSO RUN ON LOAD */
+window.onload = handleLogin;
+
+/* 🔥 LISTENER */
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    handleLogin();
+  }
 });
 </script>
 
