@@ -91,55 +91,41 @@ const supabase = window.supabase.createClient(
   "PASTE_YOUR_REAL_ANON_KEY"
 );
 
-/* LOGIN */
+/* 🔥 GOOGLE LOGIN */
 function login() {
   supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: window.location.origin
+      redirectTo: window.location.origin + "/"
     }
   });
 }
 
-/* 🔥 MAIN FIX FUNCTION */
-async function handleLogin() {
-  // 🔥 STEP 1: check hash (after redirect)
-  const hash = window.location.hash;
+/* 🔥 CHECK LOGIN */
+async function checkUser() {
+  const { data, error } = await supabase.auth.getUser();
 
-  if (hash && hash.includes("access_token")) {
-    // clean URL
-    history.replaceState(null, null, window.location.pathname);
-  }
-
-  // 🔥 STEP 2: get session
-  const { data } = await supabase.auth.getSession();
-
-  if (data.session) {
-    const user = data.session.user;
-
+  if (data.user) {
     document.getElementById("nav-right").innerHTML = `
-      <span>👤 ${user.email}</span>
+      <span>👤 ${data.user.email}</span>
       <button class="logout-btn" onclick="logout()">Logout</button>
     `;
   }
 }
 
-/* LOGOUT */
-function logout() {
-  supabase.auth.signOut();
+/* 🔥 LOGOUT */
+async function logout() {
+  await supabase.auth.signOut();
   location.reload();
 }
 
-/* 🔥 FORCE RUN */
-setTimeout(handleLogin, 1000);
-
-/* 🔥 ALSO RUN ON LOAD */
-window.onload = handleLogin;
+/* 🔥 AUTO RUN */
+checkUser();
 
 /* 🔥 LISTENER */
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) {
-    handleLogin();
+    checkUser();
   }
 });
 </script>
